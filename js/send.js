@@ -46,12 +46,17 @@
         _captcha: 'false',
         _honey: honey || ''
       }, fields);
+      // почтовый сервис иногда отвечает 20–30 секунд — ждём до минуты
+      const ctrl = window.AbortController ? new AbortController() : null;
+      const limit = setTimeout(() => ctrl && ctrl.abort(), 60000);
       try {
         const res = await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(email), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify(body)
+          body: JSON.stringify(body),
+          signal: ctrl ? ctrl.signal : undefined
         });
+        clearTimeout(limit);
         const data = await res.json().catch(() => ({}));
         if (!res.ok || data.success === 'false' || data.success === false) {
           const msg = String(data.message || '');
@@ -62,7 +67,10 @@
         }
         return { ok: true };
       } catch (e) {
-        return { ok: false, error: 'Нет связи с интернетом или почтовый сервис недоступен.' };
+        clearTimeout(limit);
+        return { ok: false, error: e && e.name === 'AbortError'
+          ? 'Почтовый сервис слишком долго не отвечал.'
+          : 'Нет связи с интернетом или почтовый сервис недоступен.' };
       }
     },
 

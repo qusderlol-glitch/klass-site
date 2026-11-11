@@ -251,6 +251,7 @@
     const btn = $('[data-submit]', final);
     btn.disabled = true;
     btn.textContent = 'Отправляю…';
+    const slow = setTimeout(() => { btn.textContent = 'Ещё чуть-чуть… (до 30 сек)'; }, 4000);
 
     const ids = info.sendTo === 'all' ? Sender.recipients().map((r) => r.id) : [info.sendTo];
     const results = await Sender.deliver(ids, {
@@ -260,6 +261,7 @@
       honey: $('#fHoney').value
     });
     sending = false;
+    clearTimeout(slow);
 
     // всё, что должно было уйти на почту, не ушло — даём попробовать ещё раз
     const failed = results.filter((r) => !r.ok);

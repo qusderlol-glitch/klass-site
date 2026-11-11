@@ -769,6 +769,7 @@
         const rep = Pages.report(name, klass);
         sendBtn.disabled = true;
         sendBtn.lastChild.textContent = ' Отправляю…';
+        const slow = setTimeout(() => { sendBtn.lastChild.textContent = ' Ещё чуть-чуть… (до 30 сек)'; }, 4000);
         const ids = to === 'all' ? Sender.recipients().map((r) => r.id) : [to];
         const results = await Sender.deliver(ids, {
           subject: 'Результаты урока — ' + name + (klass ? ', ' + klass : ''),
@@ -776,6 +777,7 @@
           text: rep.text,
           honey: el.querySelector('[data-r-honey]').value
         });
+        clearTimeout(slow);
         sendBtn.disabled = false;
         sendBtn.lastChild.textContent = ' Отправить ещё раз';
         out.innerHTML = results.map((r) => r.mode === 'email'
