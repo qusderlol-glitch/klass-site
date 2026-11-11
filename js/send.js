@@ -54,7 +54,11 @@
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || data.success === 'false' || data.success === false) {
-          return { ok: false, error: data.message || 'Почтовый сервис не принял письмо.' };
+          const msg = String(data.message || '');
+          if (/activat/i.test(msg)) {
+            return { ok: false, error: 'Почта ещё не подключена: владельцу адреса пришло письмо с кнопкой «Activate».' };
+          }
+          return { ok: false, error: msg || 'Почтовый сервис не принял письмо.' };
         }
         return { ok: true };
       } catch (e) {
