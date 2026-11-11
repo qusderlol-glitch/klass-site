@@ -1,0 +1,120 @@
+/* Tööde sait ja sisenemine (EIS-stiil on vaikimisi, aga töötab iga kujundusega) */
+
+/* keele lüliti */
+.lang { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; background: var(--surface); }
+.lang button { padding: 6px 10px; font: inherit; font-size: 0.85rem; font-weight: 700; color: var(--text); background: transparent; border: 0; cursor: pointer; }
+.lang button + button { border-left: 1px solid var(--line); }
+.lang button.is-on { background: var(--accent); color: var(--accent-text); }
+.hdr .lang { border-color: rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.12); }
+.hdr .lang button { color: inherit; }
+.site.style-eis .hdr .lang { border-color: var(--line); background: var(--surface); }
+.site.style-eis .hdr .lang button { color: var(--text); }
+.site.style-eis .hdr .lang button.is-on { color: #fff; }
+.chip--static { cursor: default; }
+.hdr .btn--ghost { background: transparent; color: inherit; border-color: rgba(255, 255, 255, 0.45); }
+.site.style-eis .hdr .btn--ghost { color: var(--accent-ink); border-color: var(--line); background: var(--surface); }
+
+/* ───── Sisenemine ───── */
+.login { max-width: 1040px; margin: 0 auto; padding: 36px 20px 40px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.login > .card + .card { margin-top: 0; }
+.login__card h1 { margin-bottom: 4px; }
+.role-tabs { display: grid; grid-template-columns: 1fr 1fr; margin: 18px 0; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+.role-tabs button { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; font: inherit; font-weight: 600; color: var(--text); background: var(--surface-2); border: 0; cursor: pointer; }
+.role-tabs button + button { border-left: 1px solid var(--line); }
+.role-tabs button.is-on { background: var(--accent); color: var(--accent-text); }
+.methods { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.method { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; text-align: left; font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); cursor: pointer; }
+.method:hover { border-color: var(--accent); }
+.method.is-on { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.method.is-off { color: var(--muted); background: var(--surface-2); border-style: dashed; }
+.method__title { font-weight: 700; }
+.method__desc { font-size: 0.82rem; color: var(--muted); }
+.login__form { display: flex; flex-direction: column; gap: 12px; margin-top: 6px; }
+.login__submit { align-self: flex-start; margin-top: 4px; }
+.field-row { display: flex; flex-direction: column; gap: 4px; }
+.field-row .label { margin: 0; }
+.field-row--short { max-width: 220px; }
+.how { margin: 10px 0 0; padding-left: 22px; }
+.how li { margin: 10px 0; }
+.login__foot { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; padding: 20px; border-top: var(--border); background: var(--surface); font-size: 0.92rem; }
+
+/* ───── Tööde loend ───── */
+.add-work form { max-width: 560px; }
+.works td { vertical-align: middle; }
+.works__act { white-space: nowrap; text-align: right; }
+.works__act .btn + .btn { margin-left: 4px; }
+.empty--inline { padding: 18px 10px; text-align: center; }
+.card-head { margin: 0 0 12px; }
+.card-head h2 { margin: 0; }
+
+/* töö info */
+.facts-grid { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin: 14px 0; padding: 14px 16px; background: var(--surface-2); border: var(--border); border-radius: var(--radius-sm); }
+.facts-grid dt { color: var(--muted); }
+.facts-grid dd { margin: 0; font-weight: 600; }
+.instructions { margin: 0 0 14px; padding: 12px 14px; border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: var(--radius-sm); }
+.instructions p { margin: 4px 0 0; white-space: pre-wrap; }
+.rules { list-style: none; margin: 0 0 6px; padding: 0; }
+.rules li { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0; }
+.rules .ico { color: var(--accent-ink); margin-top: 2px; }
+
+/* lahendamine */
+.exam { max-width: 1100px; }
+.exam > .card + .card, .exam__grid > .card + .card { margin-top: 0; }
+.exam__bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+.exam__bar .eyebrow { margin: 0; }
+.exam__title { font-size: 1.15rem; }
+.exam__time { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.exam__grid { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 14px; align-items: start; }
+.exam__nav { position: sticky; top: 80px; }
+.exam__nav .dots { margin: 0; }
+.exam__foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+
+/* tulemus */
+.copy-details { margin-top: 12px; }
+.copy-details summary { cursor: pointer; font-weight: 700; color: var(--accent-ink); }
+.copy-details[open] summary { margin-bottom: 8px; }
+
+/* ───── Töö koostamine ───── */
+.form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.form-grid__wide { grid-column: 1 / -1; }
+.check-row { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.check-row input { width: 18px; height: 18px; accent-color: var(--accent); }
+.qcard { padding: 14px; margin-bottom: 12px; background: var(--surface-2); border: var(--border); border-radius: var(--radius-sm); }
+.qcard__head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.qcard__n { font-size: 1.1rem; }
+.qcard__type { width: auto; min-width: 230px; padding: 7px 10px; }
+.qcard__pts { display: inline-flex; align-items: center; gap: 6px; }
+.qcard__pts .input { width: 70px; padding: 7px 8px; }
+.qcard__tools { margin-left: auto; display: inline-flex; gap: 4px; }
+.qopts { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.qopts p { margin: 0; }
+.qopt { display: flex; align-items: center; gap: 8px; }
+.qopt input[type="radio"], .qopt input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--ok); flex: none; }
+.qopts > .btn { align-self: flex-start; }
+.save-bar { position: sticky; bottom: 0; z-index: 5; }
+
+/* jagamine */
+.share-way h2 { font-size: 1.1rem; }
+.share-way + .share-way { margin-top: 12px; }
+.key-card summary { cursor: pointer; }
+.key-card[open] summary { margin-bottom: 10px; }
+
+/* aken (küsimuste pank) */
+.modal { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 16px; background: rgba(10, 15, 25, 0.5); }
+.modal__box { width: min(720px, 100%); max-height: calc(100vh - 32px); display: flex; flex-direction: column; gap: 10px; }
+.modal__list { overflow: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
+.modal__list .label { margin: 10px 0 2px; }
+
+@media (max-width: 860px) {
+  .login { grid-template-columns: 1fr; padding: 20px 16px; }
+  .exam__grid { grid-template-columns: 1fr; }
+  .exam__nav { position: static; }
+  .form-grid { grid-template-columns: 1fr; }
+  .methods { grid-template-columns: 1fr; }
+  .works__act { white-space: normal; }
+}
+@media (max-width: 560px) {
+  .hdr__right #userChip { display: none; }
+  .qcard__tools { margin-left: 0; }
+  .qcard__type { min-width: 0; width: 100%; }
+}

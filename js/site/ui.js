@@ -122,14 +122,15 @@
     // opts: { minSec, maxSec, onRecorded({ seconds, url }) }
     recorder(opts = {}) {
       const maxSec = opts.maxSec || 180;
+      const tr = window.L || ((et, ru) => ru);   // эстонский или русский
       const el = UI.h(`
         <div class="rec">
           <div class="rec__row">
-            <button class="btn" type="button" data-rec>${UI.icon('mic')}<span>Записать</span></button>
+            <button class="btn" type="button" data-rec>${UI.icon('mic')}<span>${tr('Salvesta', 'Записать')}</span></button>
             <span class="rec__time" data-time>00:00</span>
             <span class="rec__meter" aria-hidden="true"><span data-level></span></span>
           </div>
-          <p class="rec__state muted" data-state>Нажми «Записать» и говори в микрофон.</p>
+          <p class="rec__state muted" data-state>${tr('Vajuta «Salvesta» ja räägi mikrofoni.', 'Нажми «Записать» и говори в микрофон.')}</p>
           <audio controls data-audio hidden></audio>
           <p class="alert alert--warn" data-err hidden></p>
         </div>`);
@@ -177,13 +178,13 @@
       async function start() {
         showErr('');
         if (!navigator.mediaDevices || !window.MediaRecorder) {
-          showErr('Этот браузер не умеет записывать звук. Открой сайт в Chrome, Edge или Яндекс Браузере.');
+          showErr(tr('See brauser ei oska heli salvestada. Ava sait Chrome või Edge brauseris.', 'Этот браузер не умеет записывать звук. Открой сайт в Chrome, Edge или Яндекс Браузере.'));
           return;
         }
         try {
           stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch (e) {
-          showErr('Микрофон не включился. Разреши доступ к микрофону (значок слева от адреса сайта) и проверь, что он подключён.');
+          showErr(tr('Mikrofon ei käivitunud. Luba mikrofon (ikoon aadressi kõrval) ja kontrolli, et see on ühendatud.', 'Микрофон не включился. Разреши доступ к микрофону (значок слева от адреса сайта) и проверь, что он подключён.'));
           return;
         }
         chunks = [];
@@ -198,20 +199,20 @@
           audio.src = lastUrl;
           audio.hidden = false;
           el.classList.remove('is-recording');
-          label.textContent = 'Записать заново';
+          label.textContent = tr('Salvesta uuesti', 'Записать заново');
           btn.querySelector('svg').outerHTML = UI.icon('mic');
           const short = opts.minSec && seconds < opts.minSec;
           state.textContent = short
-            ? 'Запись слишком короткая: нужно хотя бы ' + opts.minSec + ' сек. Попробуй ещё раз.'
-            : 'Готово! Послушай запись. Если не нравится — запиши заново.';
+            ? tr('Salvestis on liiga lühike: vaja vähemalt ' + opts.minSec + ' s. Proovi uuesti.', 'Запись слишком короткая: нужно хотя бы ' + opts.minSec + ' сек. Попробуй ещё раз.')
+            : tr('Valmis! Kuula salvestis üle. Kui ei meeldi, salvesta uuesti.', 'Готово! Послушай запись. Если не нравится — запиши заново.');
           if (opts.onRecorded) opts.onRecorded({ seconds, url: lastUrl, short });
         };
         rec.start();
         started = Date.now();
         el.classList.add('is-recording');
-        label.textContent = 'Стоп';
+        label.textContent = tr('Stopp', 'Стоп');
         btn.querySelector('svg').outerHTML = UI.icon('stop');
-        state.textContent = 'Идёт запись… Говори чётко. Нажми «Стоп», когда закончишь.';
+        state.textContent = tr('Salvestan… Räägi selgelt. Vajuta «Stopp», kui oled valmis.', 'Идёт запись… Говори чётко. Нажми «Стоп», когда закончишь.');
         audio.hidden = true;
         time.textContent = '00:00';
         tick = setInterval(() => {

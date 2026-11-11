@@ -55,7 +55,7 @@
         .concat(Pages.sections.filter((s) => s.on()))
         .concat([
           { id: 'settings', href: '#/settings', title: 'Настройки', icon: 'gear', bottom: true },
-          { id: 'about', href: 'index.html', title: 'Кто для кого', icon: 'book' }
+          { id: 'about', href: 'tood.html', title: 'Работы от учителя', icon: 'tests' }
         ]);
       side.innerHTML = items.map((s) => `
         <a class="side__link ${s.id === active ? 'is-active' : ''} ${s.bottom ? 'side__link--bottom' : ''}" href="${s.href}" ${s.id === active ? 'aria-current="page"' : ''}>

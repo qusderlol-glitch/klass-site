@@ -21,6 +21,7 @@
       if (Tour.active) Tour.active();
 
       let i = 0;
+      const tr = (et, ru) => (window.L ? window.L(et, ru) : ru);
       const root = UI.h(`
         <div class="tour" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
           <div class="tour__shade"></div>
@@ -31,10 +32,10 @@
             <p class="tour__text"></p>
             <div class="tour__dots" aria-hidden="true">${steps.map(() => '<span></span>').join('')}</div>
             <div class="tour__actions">
-              <button class="btn btn--ghost btn--sm" type="button" data-skip>Пропустить</button>
+              <button class="btn btn--ghost btn--sm" type="button" data-skip>${tr('Jäta vahele', 'Пропустить')}</button>
               <span class="tour__gap"></span>
-              <button class="btn btn--ghost" type="button" data-prev>Назад</button>
-              <button class="btn" type="button" data-next>Далее</button>
+              <button class="btn btn--ghost" type="button" data-prev>${tr('Tagasi', 'Назад')}</button>
+              <button class="btn" type="button" data-next>${tr('Edasi', 'Далее')}</button>
             </div>
           </div>
         </div>`);
@@ -87,12 +88,12 @@
 
       function show() {
         const s = steps[i];
-        root.querySelector('.tour__count').textContent = 'Шаг ' + (i + 1) + ' из ' + steps.length;
+        root.querySelector('.tour__count').textContent = tr('Samm ', 'Шаг ') + (i + 1) + tr(' / ', ' из ') + steps.length;
         root.querySelector('.tour__title').textContent = s.title;
         root.querySelector('.tour__text').innerHTML = s.text;
         root.querySelectorAll('.tour__dots span').forEach((d, k) => d.classList.toggle('is-on', k === i));
         prev.disabled = i === 0;
-        next.textContent = i === steps.length - 1 ? 'Понятно!' : 'Далее';
+        next.textContent = i === steps.length - 1 ? tr('Selge!', 'Понятно!') : tr('Edasi', 'Далее');
         const target = s.el && document.querySelector(s.el);
         if (target) target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
         place();

@@ -7,6 +7,7 @@
  */
 (function () {
   const cfg = () => window.CONFIG || {};
+  const tr = (et, ru) => (window.L ? window.L(et, ru) : ru);   // eesti või vene keel
 
   const Sender = {
     recipients() { return cfg().RECIPIENTS || []; },
@@ -61,16 +62,16 @@
         if (!res.ok || data.success === 'false' || data.success === false) {
           const msg = String(data.message || '');
           if (/activat/i.test(msg)) {
-            return { ok: false, error: 'Почта ещё не подключена: владельцу адреса пришло письмо с кнопкой «Activate».' };
+            return { ok: false, error: tr('E-post pole veel ühendatud: aadressi omanik sai kirja nupuga «Activate».', 'Почта ещё не подключена: владельцу адреса пришло письмо с кнопкой «Activate».') };
           }
-          return { ok: false, error: msg || 'Почтовый сервис не принял письмо.' };
+          return { ok: false, error: msg || tr('E-posti teenus ei võtnud kirja vastu.', 'Почтовый сервис не принял письмо.') };
         }
         return { ok: true };
       } catch (e) {
         clearTimeout(limit);
         return { ok: false, error: e && e.name === 'AbortError'
-          ? 'Почтовый сервис слишком долго не отвечал.'
-          : 'Нет связи с интернетом или почтовый сервис недоступен.' };
+          ? tr('E-posti teenus ei vastanud liiga kaua.', 'Почтовый сервис слишком долго не отвечал.')
+          : tr('Interneti-ühendus puudub või e-posti teenus ei tööta.', 'Нет связи с интернетом или почтовый сервис недоступен.') };
       }
     },
 

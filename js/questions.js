@@ -186,3 +186,51 @@ Engine.register({
     { id: 'no',      label: 'Пока не нужно',        desc: 'Лучше без сайта' }
   ]
 });
+
+// ───────────── Стиль EIS + эстонские подписи ─────────────
+// Стиль EIS — ещё один вариант в вопросе «Какой стиль у сайта?»: строгий, официальный,
+// как в эстонских школьных e-системах. Эстонские подписи нужны сайту работ (tood.html).
+(function () {
+  const style = Engine.getQuestion('style');
+  style.options.push({
+    id: 'eis',
+    label: 'EIS-стиль',
+    desc: 'Строго и официально, как в школьных e-системах Эстонии',
+    labelEt: 'EIS-stiil',
+    descEt: 'Lihtne ja ametlik nagu Eesti kooli e-keskkondades',
+    apply(ctx) {
+      ctx.cls('style-eis');
+      ctx.css({
+        '--radius': '3px',
+        '--radius-sm': '2px',
+        '--border': '1px solid var(--line)',
+        '--shadow': 'none',
+        '--font': '"Roboto", "Segoe UI", Arial, sans-serif',
+        '--font-head': '"Roboto", "Segoe UI", Arial, sans-serif',
+        '--sat': '72%',
+        '--lit': '33%',
+        '--bg': '#f2f4f7',
+        '--surface': '#ffffff',
+        '--surface-2': '#f6f8fa',
+        '--line': '#cfd6df',
+        '--text': '#1d2733',
+        '--muted': '#5b6675'
+      });
+    }
+  });
+
+  const ET = {
+    style: ['Saidi stiil', { strict: ['Range', 'Kergelt ümarad nurgad, õhukesed jooned'], medium: ['Keskmine', 'Ümarad nurgad ja pehmed varjud'], soft: ['Pehme', 'Nagu käsitsi joonistatud'] }],
+    color: ['Põhivärv', { blue: ['Sinine'], green: ['Roheline'], orange: ['Oranž'], purple: ['Lilla'] }],
+    mode: ['Hele või tume', { light: ['Hele'], dark: ['Tume'], auto: ['Nagu arvutis'] }],
+    size: ['Teksti suurus', { normal: ['Tavaline'], large: ['Suur'], xlarge: ['Väga suur'] }]
+  };
+  Object.keys(ET).forEach((qid) => {
+    const q = Engine.getQuestion(qid);
+    q.titleEt = ET[qid][0];
+    q.options.forEach((o) => {
+      const t = ET[qid][1][o.id];
+      if (t) { o.labelEt = t[0]; if (t[1]) o.descEt = t[1]; }
+    });
+  });
+})();
