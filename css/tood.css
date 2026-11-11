@@ -187,3 +187,53 @@
   .code-hero h1 { font-size: 1.5rem; }
   .code-hero__input { width: 100%; font-size: 1.6rem; }
 }
+
+/* ───── Animatsioonid ───── */
+@keyframes pageIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes cardIn { from { opacity: 0; transform: translateY(16px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes qIn { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+@keyframes qInBack { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+@keyframes pop { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes tick { 0% { transform: scale(1); } 40% { transform: scale(1.03); } 100% { transform: scale(1); } }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 55%, transparent); } 50% { box-shadow: 0 0 0 10px transparent; } }
+@keyframes shake { 0%, 100% { transform: none; } 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+@keyframes fall { 0% { transform: translateY(-20px) rotate(0); opacity: 1; } 100% { transform: translateY(105vh) rotate(720deg); opacity: 0.9; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.main > .page { animation: pageIn 0.35s ease-out both; }
+.test-card, .steps-cards > li, .tiles > .tile { animation: cardIn 0.4s ease-out both; }
+.test-card:nth-child(2), .steps-cards > li:nth-child(2) { animation-delay: 0.05s; }
+.test-card:nth-child(3), .steps-cards > li:nth-child(3) { animation-delay: 0.1s; }
+.test-card:nth-child(4) { animation-delay: 0.15s; }
+.test-card:nth-child(5) { animation-delay: 0.2s; }
+.test-card:nth-child(n+6) { animation-delay: 0.25s; }
+.test-card { transition: transform 0.15s, box-shadow 0.15s; }
+.test-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(15, 30, 60, 0.1); }
+.btn { transition: filter 0.12s, transform 0.12s, box-shadow 0.2s; }
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn--pulse { animation: pulse 1.8s ease-in-out infinite; }
+.q-anim { animation: qIn 0.3s ease-out both; }
+.q-anim--back { animation-name: qInBack; }
+.opt { transition: border-color 0.15s, background 0.15s, transform 0.15s; }
+.opt.is-on { animation: tick 0.25s ease-out; }
+.dot { transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s; }
+.dot:hover { transform: translateY(-2px); }
+.shake { animation: shake 0.4s ease-in-out; }
+.result--anim .mark { animation: pop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.3) both; }
+.result--anim h1 { animation: pageIn 0.4s 0.25s ease-out both; }
+.modal--anim { animation: fadeIn 0.2s ease-out both; }
+.modal--anim .modal__box { animation: cardIn 0.25s ease-out both; }
+.confetti { position: fixed; inset: 0; z-index: 100; pointer-events: none; overflow: hidden; }
+.confetti i { position: absolute; top: -20px; width: 10px; height: 14px; border-radius: 2px; animation: fall 2.6s ease-in forwards; }
+
+/* töö lahendamine: progress ja viimane küsimus */
+.exam__bar { flex-wrap: wrap; }
+.exam__progress { flex-basis: 100%; height: 8px; background: var(--surface-2); border: var(--border); border-radius: 999px; overflow: hidden; }
+.exam__progress span { display: block; height: 100%; width: 0; background: var(--ok); transition: width 0.4s ease; }
+.exam__count { margin: 10px 0 0; text-align: center; }
+.exam__last { margin: 10px 0 0; text-align: right; }
+.submit-box { max-width: 520px; text-align: center; align-items: center; }
+.submit-box__icon { display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto 6px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-ink); }
+.submit-box__icon .ico { width: 32px; height: 32px; }
+.submit-box__dots { justify-content: center; margin: 4px 0 8px; }
+.submit-box__dots .dot { border-color: var(--bad); color: var(--bad); }

@@ -160,7 +160,7 @@
         </div>
         <div class="row">
           <button class="btn btn--lg" type="button" data-save>${L('Salvesta ja näita õpilastele', 'Сохранить и показать ученикам')}</button>
-          <button class="btn btn--ghost" type="button" data-sample>${L('Laadi näidis', 'Загрузить пример')}</button>
+          <button class="btn btn--ghost" type="button" data-sample>${L('Alusta mallist', 'Начать с шаблона')}</button>
           <span class="muted small" data-status></span>
         </div>
       </div>`);
@@ -288,7 +288,7 @@
       update();
     });
     el.querySelector('[data-sample]').addEventListener('click', () => {
-      if (ta.value.trim() && !confirm(L('Asendada praegune kood näidisega?', 'Заменить текущий код примером?'))) return;
+      if (ta.value.trim() && !confirm(L('Asendada praegune kood malliga?', 'Заменить текущий код шаблоном?'))) return;
       ta.value = sample();
       update();
     });

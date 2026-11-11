@@ -61,24 +61,6 @@
 
   const offlineNote = () => DB.online ? '' : `<div class="alert alert--warn">${icon('megaphone')} ${L('Firebase pole veel ühendatud: testid on näha ainult selles arvutis. Kui Firebase on config.js-is, näevad kõik õpilased teste oma arvutis.', 'Firebase ещё не подключён: тесты видны только на этом компьютере. Когда Firebase будет в config.js, все ученики увидят тесты на своих компьютерах.')}</div>`;
 
-  function sampleWork() {
-    const u = Core.user() || {};
-    return {
-      id: Core.newId(),
-      title: L('Arvuti ja turvalisus (näidis)', 'Компьютер и безопасность (пример)'),
-      subject: L('Informaatika', 'Информатика'),
-      klass: '',
-      minutes: 15,
-      instructions: L('Loe küsimused hoolikalt läbi. Lõpus vajuta «Esita».', 'Внимательно читай вопросы. В конце нажми «Сдать».'),
-      description: L('Arvuti osad, paroolid ja internetiturvalisus.', 'Части компьютера, пароли и безопасность в интернете.'),
-      allowTypos: true,
-      teacher: { name: u.name || '', email: u.email || '' },
-      showAnswers: true,
-      created: Date.now(),
-      questions: [1, 3, 5, 6, 9, 14].map((id) => ({ bank: id, points: 1 }))
-    };
-  }
-
   // Taimer jookseb edasi ka teisel lehel
   const T = { total: 300, left: 300, running: false, endAt: 0, done: false, onUpdate: null, tick: null };
   function beep() {
@@ -151,8 +133,8 @@
               </table></div>` : `
               <div class="empty empty--inline">
                 <p><b>${L('Sul pole veel töid.', 'У вас пока нет работ.')}</b></p>
-                <p class="muted">${L('Koosta uus töö või proovi kohe näidistööd.', 'Создайте работу или попробуйте готовый пример.')}</p>
-                <div class="row row--center"><a class="btn" href="#/uus">${L('Koosta töö', 'Создать работу')}</a><button class="btn btn--ghost" type="button" data-sample>${L('Lisa näidistöö', 'Добавить пример')}</button></div>
+                <p class="muted">${L('Koosta oma esimene test — see saab koodi A1AAA.', 'Создайте свой первый тест — он получит код A1AAA.')}</p>
+                <div class="row row--center"><a class="btn btn--lg" href="#/uus">${L('Koosta test', 'Создать тест')}</a></div>
               </div>`}
           </section>
         </div>`);
@@ -160,8 +142,6 @@
         if (!confirm(L('Kustutada töö? Õpilastel, kes selle juba avasid, jääb see alles.', 'Удалить работу? У учеников, которые её уже открыли, она останется.'))) return;
         DB.remove(b.dataset.del).then(() => App.render()).catch((e) => UI.toast(String(e.message || e)));
       }));
-      const s = el.querySelector('[data-sample]');
-      if (s) s.addEventListener('click', async () => { s.disabled = true; const w = await DB.publish(sampleWork()); location.hash = '#/jaga/' + w.id; });
       return { el };
     },
 

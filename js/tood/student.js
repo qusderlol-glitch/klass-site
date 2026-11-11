@@ -83,7 +83,7 @@
       form.addEventListener('submit', (ev) => {
         ev.preventDefault();
         const v = inp.value.trim();
-        if (Core.numOf(v) == null) { err.hidden = false; err.textContent = L('Kood on 5 märki: täht, number ja 3 tähte, näiteks B3AAA.', 'Код — 5 знаков: буква, цифра и 3 буквы, например B3AAA.'); return; }
+        if (Core.numOf(v) == null) { inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake'); err.hidden = false; err.textContent = L('Kood on 5 märki: täht, number ja 3 tähte, näiteks B3AAA.', 'Код — 5 знаков: буква, цифра и 3 буквы, например B3AAA.'); return; }
         location.hash = '#/kood/' + Core.normCode(v);
       });
       el.querySelectorAll('[data-start]').forEach((b) => b.addEventListener('click', () => { location.hash = '#/kood/' + b.dataset.start; }));
@@ -233,15 +233,13 @@
           <div class="exam__bar card">
             <div><p class="eyebrow">${L('Töö', 'Работа')}</p><b class="exam__title">${esc(Core.title(w))}</b></div>
             ${w.minutes ? `<div class="exam__time"><span class="muted small">${L('Aega jäänud', 'Осталось')}</span><span class="timer" data-timer>--:--</span></div>` : ''}
+            <div class="exam__progress" aria-hidden="true"><span data-progress></span></div>
           </div>
           <div class="exam__grid">
             <nav class="exam__nav card" aria-label="${L('Küsimused', 'Вопросы')}"><p class="label">${L('Küsimused', 'Вопросы')}</p><div class="dots" data-dots></div></nav>
             <section class="card exam__q" data-q></section>
           </div>
-          <div class="exam__foot card">
-            <span class="muted" data-count></span>
-            <button class="btn btn--ok btn--lg" type="button" data-finish>${icon('check')} ${L('Lõpeta ja esita', 'Закончить и сдать')}</button>
-          </div>
+          <p class="exam__count muted" data-count></p>
         </div>`);
       const qBox = el.querySelector('[data-q]');
       const dots = el.querySelector('[data-dots]');
@@ -255,10 +253,17 @@
         dots.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => { i = Number(b.dataset.go); draw(); }));
         const n = qs.filter((_, k) => answered(k)).length;
         count.textContent = L('Vastatud ', 'Отвечено ') + n + ' / ' + qs.length;
+        el.querySelector('[data-progress]').style.width = Math.round((n / qs.length) * 100) + '%';
       }
 
+      let lastI = i;
       function draw() {
         save();
+        qBox.classList.remove('q-anim', 'q-anim--back');
+        void qBox.offsetWidth;   // animatsioon algab uuesti
+        qBox.classList.add('q-anim');
+        if (i < lastI) qBox.classList.add('q-anim--back');
+        lastI = i;
         const q = qs[i];
         const pts = Number(w.questions[i].points != null ? w.questions[i].points : 1);
         qBox.innerHTML = `
@@ -267,8 +272,11 @@
           <div data-area></div>
           <div class="row row--between test__nav">
             <button class="btn btn--ghost" type="button" data-prev ${i === 0 ? 'disabled' : ''}>← ${L('Eelmine', 'Назад')}</button>
-            ${i < qs.length - 1 ? `<button class="btn" type="button" data-next>${L('Järgmine', 'Дальше')} →</button>` : ''}
-          </div>`;
+            ${i < qs.length - 1
+              ? `<button class="btn btn--lg" type="button" data-next>${L('Järgmine', 'Дальше')} →</button>`
+              : `<button class="btn btn--ok btn--lg btn--pulse" type="button" data-finish>${icon('check')} ${L('Esita töö', 'Сдать работу')}</button>`}
+          </div>
+          ${i === qs.length - 1 ? `<p class="muted small exam__last">${L('See oli viimane küsimus. Kui oled valmis, vajuta «Esita töö».', 'Это был последний вопрос. Если готов, нажми «Сдать работу».')}</p>` : ''}`;
         const area = qBox.querySelector('[data-area]');
         const set = (v) => { e.answers[i] = v; save(); drawDots(); };
 
@@ -332,18 +340,14 @@
         if (pv) pv.addEventListener('click', () => { i--; draw(); });
         const nx = qBox.querySelector('[data-next]');
         if (nx) nx.addEventListener('click', () => { i++; draw(); });
+        const fin = qBox.querySelector('[data-finish]');
+        if (fin) fin.addEventListener('click', () => finish(false));
         drawDots();
       }
 
       async function finish(byTime) {
         if (finishing) return;
-        if (!byTime) {
-          const empty = qs.filter((_, k) => !answered(k)).length;
-          const msg = empty
-            ? L('Vastamata küsimusi: ' + empty + '. Kas esitad töö ikkagi?', 'Без ответа: ' + empty + '. Всё равно сдать работу?')
-            : L('Kas esitad töö? Pärast esitamist vastuseid muuta ei saa.', 'Сдать работу? После этого ответы изменить нельзя.');
-          if (!confirm(msg)) return;
-        }
+        if (!byTime && !(await askSubmit())) return;
         finishing = true;
         clearInterval(timer);
         Object.values(recorders).forEach((r) => r.destroy());
@@ -361,7 +365,33 @@
         location.replace('#/tulemus/' + id);
       }
 
-      el.querySelector('[data-finish]').addEventListener('click', () => finish(false));
+      // Enne esitamist: selge ülevaade, mis on vastamata
+      function askSubmit() {
+        return new Promise((resolve) => {
+          const empty = qs.map((_, k) => k).filter((k) => !answered(k));
+          const ov = h(`
+            <div class="modal modal--anim" role="dialog" aria-modal="true" aria-labelledby="submitTitle">
+              <div class="modal__box card submit-box">
+                <div class="submit-box__icon">${icon(empty.length ? 'clock' : 'check')}</div>
+                <h2 id="submitTitle">${empty.length ? L('Mõni küsimus on vastamata', 'Есть вопросы без ответа') : L('Kõik küsimused on vastatud!', 'На все вопросы есть ответ!')}</h2>
+                ${empty.length ? `
+                  <p>${L('Vastamata', 'Без ответа')}: ${empty.length} / ${qs.length}. ${L('Vajuta numbrile, et minna tagasi:', 'Нажми на номер, чтобы вернуться:')}</p>
+                  <div class="dots submit-box__dots">${empty.map((k) => `<button type="button" class="dot" data-back="${k}">${k + 1}</button>`).join('')}</div>` : `
+                  <p>${L('Pärast esitamist vastuseid muuta ei saa.', 'После сдачи ответы изменить нельзя.')}</p>`}
+                <div class="row row--center">
+                  <button class="btn btn--ghost btn--lg" type="button" data-no>← ${L('Tagasi', 'Назад')}</button>
+                  <button class="btn btn--ok btn--lg" type="button" data-yes>${icon('check')} ${L('Jah, esita töö', 'Да, сдать работу')}</button>
+                </div>
+              </div>
+            </div>`);
+          document.body.appendChild(ov);
+          const done = (v) => { ov.remove(); resolve(v); };
+          ov.querySelector('[data-yes]').addEventListener('click', () => done(true));
+          ov.querySelector('[data-no]').addEventListener('click', () => done(false));
+          ov.querySelectorAll('[data-back]').forEach((b) => b.addEventListener('click', () => { done(false); i = Number(b.dataset.back); draw(); }));
+          ov.querySelector('[data-no]').focus();
+        });
+      }
 
       if (w.minutes) {
         const deadline = e.startedAt + w.minutes * 60000;
@@ -400,12 +430,12 @@
           ${back('#/', 'Testid')}
           <section class="card">
             ${e.byTime ? `<div class="alert alert--warn">${L('Aeg sai otsa — töö esitati automaatselt.', 'Время вышло — работа сдана автоматически.')}</div>` : ''}
-            <div class="result">
+            <div class="result result--anim">
               <div class="mark ${r.mark ? 'mark--' + Math.max(2, r.mark) : ''}">${r.mark || '✎'}</div>
               <div>
                 <h1>${L('Töö on esitatud!', 'Работа сдана!')}</h1>
                 <p>${esc(Core.title(w))}</p>
-                ${r.max ? `<p><b>${r.points} / ${r.max}</b> ${L('punkti', 'баллов')} (${r.percent}%)${r.mark ? ' · ' + L('hinne ', 'оценка ') + r.mark : ''}</p>` : ''}
+                ${r.max ? `<p><b><span data-countup="${r.points}">${r.points}</span> / ${r.max}</b> ${L('punkti', 'баллов')} (${r.percent}%)${r.mark ? ' · ' + L('hinne ', 'оценка ') + r.mark : ''}</p>` : ''}
                 ${r.manual ? `<p class="muted">${icon('pencil')} ${L('Pikad ja häälvastused hindab õpetaja', 'Развёрнутые и голосовые ответы оценит учитель')} (${r.manual} ${L('p', 'б.')}).</p>` : ''}
               </div>
             </div>
@@ -450,6 +480,31 @@
         </div>`);
 
       el.querySelector('[data-text]').value = rep.text;
+      const pts = el.querySelector('[data-countup]');
+      if (pts) {
+        const target = Number(pts.dataset.countup);
+        const t0 = performance.now();
+        const step = (t) => {
+          const k = Math.min(1, (t - t0) / 900);
+          pts.textContent = (Math.round(target * (1 - Math.pow(1 - k, 3)) * 10) / 10).toString();
+          if (k < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }
+      if (r.mark >= 4 && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const box = h('<div class="confetti" aria-hidden="true"></div>');
+        const colors = ['#2f6fd6', '#16865a', '#f2a900', '#c2185b', '#7a4fd0'];
+        for (let k = 0; k < 40; k++) {
+          const c = document.createElement('i');
+          c.style.left = Math.random() * 100 + '%';
+          c.style.background = colors[k % colors.length];
+          c.style.animationDelay = Math.random() * 0.6 + 's';
+          c.style.transform = 'rotate(' + Math.random() * 360 + 'deg)';
+          box.appendChild(c);
+        }
+        document.body.appendChild(box);
+        setTimeout(() => box.remove(), 3200);
+      }
       el.querySelector('[data-copy]').addEventListener('click', async () => {
         await UI.copy(rep.text);
         UI.toast(L('Tekst kopeeritud — kleebi see Stuudiumi sõnumisse', 'Текст скопирован — вставь его в сообщение Stuudium'));
