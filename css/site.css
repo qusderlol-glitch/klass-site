@@ -570,6 +570,116 @@ a.link:hover { text-decoration: underline; }
 .site.style-soft .hdr__mark { border: 2px solid rgba(255, 255, 255, 0.85); }
 .site.style-soft .chip { border-width: 2px; }
 
+/* ───── Новое: кнопка «?», урок от учителя, отправка ───── */
+.icon-btn--help { font: inherit; font-weight: 700; font-size: 1.2rem; background: rgba(255, 255, 255, 0.16); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 50%; width: 36px; height: 36px; color: inherit; cursor: pointer; }
+.icon-btn--help:hover { background: rgba(255, 255, 255, 0.28); }
+a.chip { text-decoration: none; }
+.btn--sm { padding: 6px 12px; font-size: 0.85rem; }
+.label--gap { margin-top: 16px; }
+
+.badge--today { color: #fff; background: hsl(18 75% 45%); border-color: transparent; }
+.task-card.is-today { border-color: hsl(18 75% 45%); box-shadow: inset 4px 0 0 hsl(18 75% 45%), var(--shadow); }
+.teacher-note { margin: 0 0 14px; padding: 10px 14px; background: var(--warn-soft); color: var(--text); border-left: 4px solid hsl(18 75% 45%); border-radius: var(--radius-sm); }
+.today { list-style: none; margin: 0 0 16px; padding: 0; }
+.today li { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: var(--border); }
+.today li:last-child { border-bottom: 0; }
+.today a { flex: 1; font-weight: 700; text-decoration: none; }
+.today a:hover { text-decoration: underline; }
+.today__mark { color: var(--muted); display: inline-flex; }
+.today li.is-done .today__mark { color: var(--ok); }
+.today li.is-done a { color: var(--muted); text-decoration: line-through; }
+.code-form { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.code-form .input { text-transform: uppercase; letter-spacing: 0.06em; }
+
+.send-card { border-color: var(--accent); box-shadow: inset 0 4px 0 var(--accent), var(--shadow); }
+.send-card__who { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin: 12px 0 14px; }
+.pick-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.pick-list .opt { align-items: flex-start; font-size: 1rem; }
+.pick-list .opt:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.copy-box { margin-top: 12px; }
+.opt--sm { padding: 9px 12px; font-size: 0.97rem; }
+
+/* ───── Тур ───── */
+.tour { position: fixed; inset: 0; z-index: 90; }
+.tour__shade { position: absolute; inset: 0; background: rgba(8, 12, 22, 0.6); }
+.tour__spot {
+  position: fixed;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 4px hsl(var(--hue) 90% 65%), 0 0 0 9999px rgba(8, 12, 22, 0.6);
+  transition: left 0.25s, top 0.25s, width 0.25s, height 0.25s;
+  pointer-events: none;
+}
+.tour__card {
+  position: fixed;
+  padding: 18px 20px 16px;
+  background: var(--surface);
+  color: var(--text);
+  border: var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+  transition: left 0.25s, top 0.25s;
+}
+.tour__count { margin: 0 0 4px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-ink); }
+.tour__title { font-size: 1.3rem; margin: 0 0 6px; }
+.tour__text { margin: 0 0 12px; }
+.tour__dots { display: flex; gap: 5px; margin-bottom: 14px; }
+.tour__dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.tour__dots span.is-on { background: var(--accent); width: 20px; border-radius: 4px; }
+.tour__actions { display: flex; align-items: center; gap: 8px; }
+.tour__gap { flex: 1; }
+
+/* ───── Кабинет учителя ───── */
+.hdr--teacher { background: hsl(150 45% 26%); }
+.is-teacher .side__link.is-active { background: hsl(150 45% 26%); color: #fff; }
+.steps-cards { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.steps-cards > .card + .card { margin-top: 0; }
+.steps-cards li { position: relative; display: flex; flex-direction: column; align-items: flex-start; padding-top: 26px; }
+.steps-cards li p { flex: 1; }
+.steps-cards__n { position: absolute; top: -14px; left: 20px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--accent-text); font-weight: 700; }
+.code-chip { font-family: Consolas, monospace; padding: 1px 8px; background: var(--accent-soft); border-radius: var(--radius-sm); color: var(--accent-ink); }
+.grid--lesson { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: start; }
+.share { position: sticky; top: 80px; display: flex; flex-direction: column; gap: 10px; }
+.share .row { margin-top: 0; }
+.share__code { display: flex; flex-direction: column; align-items: center; padding: 14px; background: var(--accent-soft); border-radius: var(--radius-sm); text-align: center; }
+.share__code b { font-family: Consolas, monospace; font-size: 2.2rem; letter-spacing: 0.08em; color: var(--accent-ink); word-break: break-all; }
+.share__code.is-empty b { color: var(--muted); }
+.share__qr { display: grid; place-items: center; min-height: 210px; padding: 8px; background: #fff; border: var(--border); border-radius: var(--radius-sm); }
+.share__qr img, .share__qr canvas { display: block; }
+.share__proj { width: 100%; }
+
+.keys { margin: 0; padding-left: 22px; }
+.keys li { padding: 8px 0; border-bottom: var(--border); }
+.keys li:last-child { border-bottom: 0; }
+.keys li span { display: block; }
+.keys li b { color: var(--ok); }
+.input--pin { max-width: 160px; text-align: center; font-size: 1.2rem; letter-spacing: 0.3em; }
+.sample { margin: 0; padding: 14px; white-space: pre-wrap; background: var(--surface-2); border: var(--border); border-radius: var(--radius-sm); font: 0.9rem/1.55 Consolas, monospace; }
+
+.timer-card { text-align: center; }
+.timer-card__label { max-width: 520px; margin: 0 auto; text-align: center; font-size: 1.2rem; font-weight: 700; border-style: dashed; }
+.timer-card__digits { margin: 18px 0 10px; font-family: Consolas, "PT Mono", monospace; font-size: clamp(4rem, 16vw, 11rem); font-weight: 700; line-height: 1; color: var(--accent-ink); font-variant-numeric: tabular-nums; }
+.timer-card__meter { max-width: 640px; margin: 0 auto 8px; height: 12px; }
+.timer-card.is-low .timer-card__digits { color: var(--bad); }
+.timer-card.is-done .timer-card__digits { color: var(--bad); font-size: clamp(2.5rem, 9vw, 6rem); animation: blink 1s infinite; }
+.timer-card__custom { margin-top: 0; }
+.timer-card__custom .input { width: 80px; }
+.timer-card:fullscreen { display: flex; flex-direction: column; justify-content: center; background: var(--surface); }
+.timer-card:fullscreen .timer-card__digits { font-size: 28vw; }
+
+/* проектор */
+.projector { position: fixed; inset: 0; z-index: 95; display: flex; flex-direction: column; background: var(--surface); color: var(--text); overflow: auto; }
+.projector__bar { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 18px; }
+.projector__body { flex: 1; display: grid; grid-template-columns: 1.3fr 1fr; gap: 40px; align-items: center; padding: 10px 6vw 40px; }
+.projector__topic { font-family: var(--font-head); font-size: clamp(2rem, 4.5vw, 3.6rem); font-weight: 700; color: var(--accent-ink); margin: 0 0 24px; line-height: 1.1; }
+.projector__steps { margin: 0; padding-left: 1.3em; font-size: clamp(1.3rem, 2.4vw, 2rem); }
+.projector__steps li { margin-bottom: 22px; }
+.projector__url, .projector__code { display: block; font-family: Consolas, monospace; word-break: break-all; }
+.projector__url { font-size: clamp(1.2rem, 2.4vw, 2rem); color: var(--text); }
+.projector__code { font-size: clamp(3rem, 8vw, 6.5rem); letter-spacing: 0.06em; color: var(--accent-ink); line-height: 1.1; }
+.projector__note { font-size: clamp(1.1rem, 2vw, 1.6rem); padding: 14px 18px; background: var(--warn-soft); border-left: 6px solid hsl(18 75% 45%); border-radius: var(--radius-sm); }
+.projector__qr { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; font-size: 1.2rem; color: var(--muted); }
+.projector__qr > div { padding: 16px; background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); }
+
 /* предпросмотр на стикере */
 .is-embed .hdr { position: static; }
 .is-embed .side { position: static; height: auto; }
@@ -596,8 +706,12 @@ a.link:hover { text-decoration: underline; }
   .side__link { white-space: nowrap; padding: 8px 12px; }
   .side__link--bottom { margin-top: 0; }
   .main { padding: 20px 16px 40px; }
-  .grid--home, .grid--2 { grid-template-columns: 1fr; }
+  .grid--home, .grid--2, .grid--lesson, .steps-cards { grid-template-columns: 1fr; }
+  .steps-cards { gap: 26px; }
+  .share { position: static; }
+  .projector__body { grid-template-columns: 1fr; gap: 20px; }
   .hero__art { display: none; }
+  .send-card__who { grid-template-columns: 1fr; }
 }
 @media (max-width: 560px) {
   .hdr { padding: 8px 12px; }

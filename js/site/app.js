@@ -13,11 +13,6 @@
   // значки в разметке
   document.querySelectorAll('[data-icon]').forEach((n) => { n.innerHTML = icon(n.dataset.icon); });
 
-  // ───── Тема: сюда движок вписывает собранный CSS ─────
-  const themeTag = document.createElement('style');
-  themeTag.id = 'generated-theme';
-  document.head.appendChild(themeTag);
-
   let current = null;       // текущая страница { el, destroy, onConfig, busy }
   let lastFeatures = '';
 
@@ -58,7 +53,10 @@
       const active = { task: 'tasks', test: 'tests', game: 'games' }[route] || route;
       const items = [{ id: '', href: '#/', title: 'Главная', icon: 'home' }]
         .concat(Pages.sections.filter((s) => s.on()))
-        .concat([{ id: 'settings', href: '#/settings', title: 'Настройки', icon: 'gear', bottom: true }]);
+        .concat([
+          { id: 'settings', href: '#/settings', title: 'Настройки', icon: 'gear', bottom: true },
+          { id: 'about', href: 'index.html', title: 'Кто для кого', icon: 'book' }
+        ]);
       side.innerHTML = items.map((s) => `
         <a class="side__link ${s.id === active ? 'is-active' : ''} ${s.bottom ? 'side__link--bottom' : ''}" href="${s.href}" ${s.id === active ? 'aria-current="page"' : ''}>
           ${icon(s.icon)}<span>${s.title}</span>
@@ -80,8 +78,7 @@
 
     // каждый раз, когда ответы (настройки) меняются
     onConfig(ctx) {
-      themeTag.textContent = ctx.generatedCSS;          // сайт переписывает свою тему
-      document.documentElement.className = 'site ' + Array.from(ctx.classes).join(' ') + (EMBED ? ' is-embed' : '');
+      UI.applyTheme(ctx, EMBED ? 'is-embed' : '');      // сайт переписывает свою тему
       const f = ctx.features.join(',');
       const changed = f !== lastFeatures;
       lastFeatures = f;
@@ -130,15 +127,45 @@
     if (fromUrl) {
       Engine.answers = fromUrl;
       Engine.save();
-      // убираем ответы из адреса, чтобы ссылка была аккуратной
-      history.replaceState(null, '', location.pathname + location.hash);
     } else {
       Engine.answers = Engine.loadSaved() || {};
     }
+
+    // урок на сегодня — по ссылке из кабинета учителя
+    if (params.has('l_tasks') || params.has('l_tests') || params.has('l_topic')) {
+      const list = (k) => (params.get(k) || '').split(',').filter(Boolean);
+      Store.setLesson({
+        topic: params.get('l_topic') || '',
+        note: params.get('l_note') || '',
+        tasks: list('l_tasks'),
+        tests: list('l_tests'),
+        date: Date.now()
+      });
+    }
+
+    // убираем всё служебное из адреса, чтобы ссылка была аккуратной
+    if (location.search) history.replaceState(null, '', location.pathname + location.hash);
   }
+
+  // ───── Тур по сайту ─────
+  const TOUR = [
+    { el: null, title: 'Добро пожаловать!', text: 'Это сайт нашего компьютерного класса. Сейчас за минуту покажу, что где. Листай кнопкой «Далее» или стрелками на клавиатуре.' },
+    { el: '#sideNav a[href="#/"]', title: 'Главная', text: 'Здесь тема урока, <b>задания на сегодня</b> от учителя, твой прогресс и объявления.' },
+    { el: '#sideNav a[href="#/tasks"]', title: 'Задания', text: 'Текстовые — пишешь ответ, черновик сохраняется сам. Голосовые — записываешь ответ в микрофон.' },
+    { el: '#sideNav a[href="#/tests"]', title: 'Контрольные', text: 'Вопросы с таймером. В конце сразу видно оценку и разбор ошибок.' },
+    { el: '#sideNav a[href="#/games"]', title: 'Игры', text: 'Для перемены: «Найди пару» и «Правда или ложь».' },
+    { el: '#sideNav a[href="#/typing"]', title: 'Клавиатурный тренажёр', text: 'Учимся печатать быстро. Подсвеченная клавиша — та, которую нажать.' },
+    { el: '#sideNav a[href="#/results"]', title: 'Мои результаты', text: 'Все оценки и рекорды. Отсюда в конце урока <b>отправляешь результаты</b> учительнице.' },
+    { el: '#studentChip', title: 'Твоё имя', text: 'Нажми и напиши имя — оно попадёт в результаты, которые ты отправишь.' },
+    { el: '#helpBtn', title: 'Если забудешь', text: 'Нажми «?», и этот тур покажется снова. Удачи на уроке!' }
+  ];
+  const runTour = () => { location.hash = '#/'; setTimeout(() => Tour.start(TOUR, { key: 'student' }), 50); };
+  document.getElementById('helpBtn').addEventListener('click', runTour);
 
   window.addEventListener('hashchange', App.render);
   App.renderChip();
   Engine.build();
   App.render();
+
+  if (!EMBED && (params.has('tour') || !Tour.seen('student'))) setTimeout(runTour, 400);
 })();

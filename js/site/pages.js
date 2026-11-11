@@ -21,12 +21,117 @@
     { id: 'results', href: '#/results', title: 'Мои результаты', icon: 'chart', desc: 'Оценки и рекорды', on: () => true }
   ];
 
-  const tasksOn = () => DATA.tasks.filter((t) => has(t.type));
+  // Урок на сегодня от учителя (если пришла ссылка) — его задания показываем первыми
+  const lesson = () => Store.lesson();
+  const isToday = (kind, id) => { const l = lesson(); return Boolean(l && (l[kind] || []).includes(id)); };
+  const todayFirst = (kind) => (a, b) => Number(isToday(kind, b.id)) - Number(isToday(kind, a.id));
+  const tasksOn = () => DATA.tasks.filter((t) => has(t.type)).sort(todayFirst('tasks'));
+
+  function lessonCard(firstStep) {
+    const l = lesson();
+    if (!l) {
+      return `
+        <section class="card lesson">
+          <p class="eyebrow">${icon('book')} Урок сегодня</p>
+          <h2>${esc(DATA.lesson.topic)}</h2>
+          <p class="muted">На уроке мы:</p>
+          <ul class="ticks">${DATA.lesson.goals.map((g) => `<li>${icon('check')}<span>${esc(g)}</span></li>`).join('')}</ul>
+          <a class="btn" href="${firstStep}">Начать урок</a>
+          ${codeForm('Учитель дал код урока? Введи его:')}
+        </section>`;
+    }
+    const items = []
+      .concat((l.tasks || []).map((id) => DATA.tasks.find((t) => t.id === id)).filter((t) => t && has(t.type)).map((t) => ({
+        href: '#/task/' + t.id, title: t.title, kind: TYPE[t.type].label, done: Store.task(t.id).status === 'done'
+      })))
+      .concat((l.tests || []).map((id) => DATA.tests.find((t) => t.id === id)).filter((t) => t && has('test')).map((t) => ({
+        href: '#/test/' + t.id, title: t.title, kind: 'Контрольная', done: Boolean(Store.test(t.id))
+      })));
+    const next = items.find((x) => !x.done);
+    return `
+      <section class="card lesson lesson--teacher">
+        <p class="eyebrow">${icon('book')} Урок сегодня · от учителя</p>
+        <h2>${esc(l.topic || DATA.lesson.topic)}</h2>
+        ${l.note ? `<blockquote class="teacher-note">${esc(l.note)}</blockquote>` : ''}
+        ${items.length ? `
+          <p class="muted">Задания на сегодня:</p>
+          <ul class="today">${items.map((x) => `
+            <li class="${x.done ? 'is-done' : ''}">
+              <span class="today__mark">${icon(x.done ? 'check' : 'clock')}</span>
+              <a href="${x.href}">${esc(x.title)}</a>
+              <span class="badge">${x.kind}</span>
+            </li>`).join('')}
+          </ul>
+          ${next ? `<a class="btn" href="${next.href}">${items.some((x) => x.done) ? 'Продолжить' : 'Начать урок'}</a>` : `<div class="alert alert--ok">${icon('star')} Всё на сегодня сделано! Не забудь <a href="#/results">отправить результаты</a>.</div>`}
+        ` : `<a class="btn" href="${firstStep}">Начать урок</a>`}
+        ${codeForm('Другой код урока')}
+      </section>`;
+  }
+
+  // Код урока: учитель показывает его на проекторе, ученик вводит (например T1-V2-PC)
+  function codeForm(label) {
+    return `
+      <form class="code-form" data-code-form>
+        <label class="small muted" for="lessonCode">${label}</label>
+        <div class="row row--tight">
+          <input class="input" id="lessonCode" type="text" maxlength="40" autocomplete="off" placeholder="например, T1-V2-PC" data-code>
+          <button class="btn btn--ghost" type="submit">Открыть</button>
+        </div>
+      </form>`;
+  }
+
+  function applyCode(code) {
+    const ids = code.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    const tasks = ids.filter((id) => DATA.tasks.some((t) => t.id === id));
+    const tests = ids.filter((id) => DATA.tests.some((t) => t.id === id));
+    if (!tasks.length && !tests.length) return false;
+    Store.setLesson({ topic: '', note: '', tasks, tests, date: Date.now(), code: code.toUpperCase() });
+    return true;
+  }
   const testQuestions = (test) => test.questions.filter((q) => q.type !== 'voice' || has('voice'));
   const backLink = (href, text) => `<a class="back" href="${href}">${icon('back')}<span>${text}</span></a>`;
 
   const Pages = {
     sections: SECTIONS,
+
+    // Отчёт ученика для письма: то, что нужно учительнице
+    report(name, klass) {
+      const fields = { 'Ученик': name, 'Класс': klass || '— не указан —' };
+      const l = lesson();
+      if (l && l.topic) fields['Урок'] = l.topic;
+      const tasks = tasksOn();
+      fields['Заданий сдано'] = tasks.filter((t) => Store.task(t.id).status === 'done').length + ' из ' + tasks.length;
+      tasks.forEach((t) => {
+        const s = Store.task(t.id);
+        let v;
+        if (s.status === 'done') {
+          v = t.type === 'text'
+            ? 'СДАНО: ' + (s.draft || '').trim()
+            : 'СДАНО: голосовой ответ ' + (s.seconds || '?') + ' сек (запись на компьютере ученика)';
+        } else if (s.status === 'draft') {
+          v = 'черновик: ' + (s.draft || '').trim();
+        } else {
+          v = 'не начато';
+        }
+        fields[(isToday('tasks', t.id) ? '★ ' : '') + 'Задание «' + t.title + '»'] = v;
+      });
+      if (has('test')) {
+        DATA.tests.forEach((t) => {
+          const r = Store.test(t.id);
+          fields[(isToday('tests', t.id) ? '★ ' : '') + 'Контрольная «' + t.title + '»'] = r
+            ? 'оценка ' + r.best.mark + ' (' + r.best.percent + '%), последняя попытка ' + r.last.mark + ', попыток ' + r.attempts
+            : 'не пройдена';
+        });
+      }
+      if (has('typing')) {
+        const b = Store.typingBest();
+        fields['Клавиатурный тренажёр'] = b ? b.cpm + ' зн/мин, точность ' + b.acc + '%' : 'не пробовал';
+      }
+      const text = 'Результаты урока — компьютерный класс\n' +
+        Object.keys(fields).map((k) => k + ': ' + fields[k]).join('\n') +
+        (l ? '\n\n★ — задание на сегодня' : '');
+      return { fields, text };
+    },
 
     // ───────── Главная ─────────
     home() {
@@ -54,13 +159,7 @@
           </section>
 
           <div class="grid grid--home">
-            <section class="card lesson">
-              <p class="eyebrow">${icon('book')} Урок сегодня</p>
-              <h2>${esc(DATA.lesson.topic)}</h2>
-              <p class="muted">На уроке мы:</p>
-              <ul class="ticks">${DATA.lesson.goals.map((g) => `<li>${icon('check')}<span>${esc(g)}</span></li>`).join('')}</ul>
-              <a class="btn" href="${firstStep}">Начать урок</a>
-            </section>
+            ${lessonCard(firstStep)}
 
             <section class="card">
               <p class="eyebrow">${icon('chart')} Мой прогресс</p>
@@ -92,6 +191,15 @@
               </a>`).join('')}
           </div>
         </div>`);
+
+      const codeF = el.querySelector('[data-code-form]');
+      codeF.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const v = codeF.querySelector('[data-code]').value.trim();
+        if (!v) return;
+        if (applyCode(v)) { UI.toast('Урок открыт!'); App.render(); }
+        else UI.toast('Такого кода нет. Проверь буквы и цифры.');
+      });
 
       const form = el.querySelector('[data-name-form]');
       if (form) {
@@ -132,9 +240,10 @@
           const st = Store.task(t.id);
           const s = STATUS[st.status] || STATUS.new;
           box.appendChild(h(`
-            <a class="card task-card" href="#/task/${t.id}">
+            <a class="card task-card ${isToday('tasks', t.id) ? 'is-today' : ''}" href="#/task/${t.id}">
               <div class="task-card__top">
                 <span class="badge badge--type">${icon(TYPE[t.type].icon)} ${TYPE[t.type].label}</span>
+                ${isToday('tasks', t.id) ? '<span class="badge badge--today">На сегодня</span>' : ''}
                 <span class="badge ${s.cls}">${s.label}</span>
               </div>
               <h3>${esc(t.title)}</h3>
@@ -293,14 +402,15 @@
             <p class="muted">У каждой контрольной есть таймер. Когда время выйдет, работа сдастся сама.</p>
           </div>
           <div class="cards">
-            ${DATA.tests.map((t) => {
+            ${DATA.tests.slice().sort(todayFirst('tests')).map((t) => {
               const qs = testQuestions(t);
               const r = Store.test(t.id);
               const voice = qs.some((q) => q.type === 'voice');
               return `
-                <a class="card task-card" href="#/test/${t.id}">
+                <a class="card task-card ${isToday('tests', t.id) ? 'is-today' : ''}" href="#/test/${t.id}">
                   <div class="task-card__top">
                     <span class="badge badge--type">${icon('tests')} ${qs.length} ${plural(qs.length, 'вопрос', 'вопроса', 'вопросов')}</span>
+                    ${isToday('tests', t.id) ? '<span class="badge badge--today">На сегодня</span>' : ''}
                     ${r ? `<span class="badge badge--ok">Оценка: ${r.best.mark}</span>` : '<span class="badge">Не пройдено</span>'}
                   </div>
                   <h3>${esc(t.title)}</h3>
@@ -579,6 +689,21 @@
             <p class="muted">Всё хранится только на этом компьютере${Store.name ? ' — для ученика ' + esc(Store.name) : ''}.</p>
           </div>
 
+          <section class="card send-card" id="sendResults">
+            <h2>${icon('megaphone')} Отправить результаты</h2>
+            <p class="muted">В конце урока отправь результаты — учительница увидит, какие задания ты сделал, твои ответы и оценки.</p>
+            <div class="send-card__who">
+              <label><span class="label">Имя и фамилия</span><input class="input" data-r-name type="text" maxlength="50" value="${esc(Store.name)}" placeholder="Ваня Петров"></label>
+              <label><span class="label">Класс</span><input class="input" data-r-klass type="text" maxlength="6" value="${esc(Store.klass)}" placeholder="6А"></label>
+            </div>
+            <p class="label">Кому отправить?</p>
+            ${UI.recipientPicker('rcpt')}
+            <input type="text" data-r-honey class="sr-only" tabindex="-1" autocomplete="off" aria-hidden="true">
+            <div class="row"><button class="btn" type="button" data-r-send>${icon('megaphone')} Отправить результаты</button></div>
+            <p class="alert alert--warn" data-r-err hidden></p>
+            <div data-r-out></div>
+          </section>
+
           ${tasks.length ? `
           <section class="card">
             <h2>${icon('pencil')} Задания</h2>
@@ -627,6 +752,51 @@
 
           <div class="row"><button class="btn btn--ghost btn--danger" type="button" data-reset>Очистить мои результаты</button></div>
         </div>`);
+      // ── отправка результатов ──
+      const sendBtn = el.querySelector('[data-r-send]');
+      const err = el.querySelector('[data-r-err]');
+      const out = el.querySelector('[data-r-out]');
+      sendBtn.addEventListener('click', async () => {
+        const name = el.querySelector('[data-r-name]').value.trim();
+        const klass = el.querySelector('[data-r-klass]').value.trim();
+        const to = (el.querySelector('input[name="rcpt"]:checked') || {}).value;
+        err.hidden = true;
+        if (!name) { err.hidden = false; err.textContent = 'Напиши имя — иначе учительница не поймёт, чьи это результаты.'; return; }
+        if (!to) { err.hidden = false; err.textContent = 'Выбери, кому отправить.'; return; }
+        if (name !== Store.name) { Store.setName(name); App.renderChip(); }
+        if (klass !== Store.klass) Store.setKlass(klass);
+
+        const rep = Pages.report(name, klass);
+        sendBtn.disabled = true;
+        sendBtn.lastChild.textContent = ' Отправляю…';
+        const ids = to === 'all' ? Sender.recipients().map((r) => r.id) : [to];
+        const results = await Sender.deliver(ids, {
+          subject: 'Результаты урока — ' + name + (klass ? ', ' + klass : ''),
+          fields: rep.fields,
+          text: rep.text,
+          honey: el.querySelector('[data-r-honey]').value
+        });
+        sendBtn.disabled = false;
+        sendBtn.lastChild.textContent = ' Отправить ещё раз';
+        out.innerHTML = results.map((r) => r.mode === 'email'
+          ? `<div class="alert ${r.ok ? 'alert--ok' : 'alert--warn'}">${icon(r.ok ? 'check' : 'cross')} ${esc(r.recipient.label)}: ${r.ok ? 'результаты отправлены на почту.' : 'не отправилось — ' + esc(r.error)}</div>`
+          : `<div class="alert alert--info">${icon('pencil')} ${esc(r.recipient.label)}: скопируй текст и отправь ${r.recipient.suhtlus ? 'в Suhtlus' : 'сам'}.</div>`).join('');
+        if (results.some((r) => r.mode === 'copy')) {
+          const box = h(`
+            <div class="copy-box">
+              <p class="muted small">Открой Suhtlus → «Новое сообщение» → выбери учительницу → вставь текст (Ctrl + V) → отправь.</p>
+              <textarea class="input textarea" readonly rows="8"></textarea>
+              <div class="row"><button class="btn" type="button">${icon('pencil')} Скопировать текст</button></div>
+            </div>`);
+          box.querySelector('textarea').value = rep.text;
+          box.querySelector('button').addEventListener('click', async () => {
+            await UI.copy(rep.text);
+            UI.toast('Текст скопирован — вставь его в Suhtlus');
+          });
+          out.appendChild(box);
+        }
+      });
+
       el.querySelector('[data-reset]').addEventListener('click', () => {
         if (!confirm('Удалить все результаты на этом компьютере? Это нельзя отменить.')) return;
         Store.resetResults();
@@ -638,7 +808,7 @@
 
     // ───────── Настройки ─────────
     settings() {
-      const qs = Engine.questions.filter((q) => q.id !== 'vote');
+      const qs = Engine.questions.filter((q) => q.settings !== false);
       const el = h(`
         <div class="page">
           <div class="page-head">
@@ -652,7 +822,7 @@
               <p class="muted small">Зелёным подсвечено то, что поменялось после последнего выбора.</p>
               <pre class="code" data-code></pre>
               <div class="row">
-                <a class="btn" href="index.html">Пройти анкету заново</a>
+                <a class="btn" href="anketa.html">Пройти анкету заново</a>
                 <button class="btn btn--ghost" type="button" data-defaults>Вернуть как было</button>
               </div>
             </section>

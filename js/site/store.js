@@ -23,6 +23,17 @@
 
     get name() { return this.data.name || ''; },
     setName(name) { this.data.name = name; this.save(); },
+    get klass() { return this.data.klass || ''; },
+    setKlass(k) { this.data.klass = k; this.save(); },
+
+    // Урок на сегодня — приходит по ссылке от учителя (хранится отдельно от результатов)
+    lesson() {
+      try { return JSON.parse(localStorage.getItem('klass-lesson') || 'null'); } catch (e) { return null; }
+    },
+    setLesson(l) {
+      if (!this.persist) return;
+      try { localStorage.setItem('klass-lesson', JSON.stringify(l)); } catch (e) { /* ничего */ }
+    },
 
     task(id) { return this.data.tasks[id] || { status: 'new' }; },
     updateTask(id, patch) {
@@ -63,7 +74,7 @@
     },
 
     resetResults() {
-      this.data = { name: this.data.name, tasks: {}, tests: {}, games: {}, typing: {} };
+      this.data = { name: this.data.name, klass: this.data.klass, tasks: {}, tests: {}, games: {}, typing: {} };
       this.save();
     }
   };

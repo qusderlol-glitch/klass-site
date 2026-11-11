@@ -69,6 +69,47 @@
       return { mark: 2, word: 'Нужно повторить' };
     },
 
+    // Скопировать текст в буфер обмена
+    async copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (e) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;opacity:0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        ta.remove();
+        return ok;
+      }
+    },
+
+    // Применить собранную движком тему к странице
+    applyTheme(ctx, extraClass) {
+      let tag = document.getElementById('generated-theme');
+      if (!tag) {
+        tag = document.createElement('style');
+        tag.id = 'generated-theme';
+        document.head.appendChild(tag);
+      }
+      tag.textContent = ctx.generatedCSS;
+      document.documentElement.className = 'site ' + Array.from(ctx.classes).join(' ') + (extraClass ? ' ' + extraClass : '');
+    },
+
+    // Карточка «кому отправить»: варианты из config.js
+    recipientPicker(name) {
+      const recips = Sender.recipients();
+      const opts = recips.map((r) => ({ id: r.id, label: r.label, desc: (r.hint ? r.hint + ' · ' : '') + (r.email ? 'на почту' : 'скопировать текст') }));
+      if (recips.length > 1) opts.push({ id: 'all', label: 'Всем сразу', desc: recips.map((r) => r.label.toLowerCase()).join(' и ') });
+      return `<div class="pick-list" role="radiogroup" aria-label="Кому отправить">${opts.map((o, k) => `
+        <label class="opt">
+          <input type="radio" name="${name}" value="${o.id}" ${k === 0 ? 'checked' : ''}>
+          <span><b>${esc(o.label)}</b><br><span class="muted small">${esc(o.desc)}</span></span>
+        </label>`).join('')}</div>`;
+    },
+
     toast(msg) {
       const t = document.getElementById('toast');
       t.textContent = msg;

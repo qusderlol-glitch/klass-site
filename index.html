@@ -1,35 +1,141 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" class="site style-strict mode-light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Анкета — сайт для компьютерного класса</title>
-  <meta name="description" content="Анкета для учеников: ответь на вопросы — и сайт компьютерного класса соберётся сам.">
+  <title>Компьютерный класс</title>
+  <meta name="description" content="Сайт компьютерного класса: для учеников, для учителя и анкета. Кто что делает и куда что отправляется.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=PT+Sans:wght@400;700&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap">
-  <link rel="stylesheet" href="css/exam.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap">
+  <link rel="stylesheet" href="css/site.css">
+  <link rel="stylesheet" href="css/landing.css">
 </head>
 <body>
-  <div class="ink-progress" aria-hidden="true"><div class="ink-progress__bar" id="inkBar"></div></div>
+  <header class="hdr">
+    <a class="hdr__brand" href="index.html">
+      <span class="hdr__mark" data-icon="monitor"></span>
+      <span class="hdr__titles"><b>Компьютерный класс</b><small>Кабинет информатики</small></span>
+    </a>
+    <nav class="hdr__nav" aria-label="Разделы">
+      <a href="#roles">Кто для кого</a>
+      <a href="#flow">Кто кому отправляет</a>
+      <a href="#steps">Как проходит урок</a>
+    </nav>
+  </header>
 
-  <nav class="sheet-tabs" id="sheetTabs" aria-label="Листы анкеты"></nav>
+  <main class="land">
+    <section class="land__hero">
+      <h1>Сайт нашего компьютерного класса</h1>
+      <p class="muted">Здесь три части: сайт для учеников, кабинет для учителя и анкета, по которой сайт настраивается сам. Выбери, кто ты.</p>
+    </section>
 
-  <main class="stack" id="stack"></main>
+    <section class="roles-pick" aria-label="Выбери, кто ты">
+      <a class="pick pick--student" href="site.html">
+        <span class="pick__icon" data-icon="user"></span>
+        <span class="pick__who">Я ученик</span>
+        <span class="pick__what">Задания, контрольные, игры и клавиатурный тренажёр. Здесь ты работаешь на уроке.</span>
+        <span class="pick__go">Открыть сайт ученика →</span>
+      </a>
+      <a class="pick pick--teacher" href="teacher.html">
+        <span class="pick__icon" data-icon="book"></span>
+        <span class="pick__who">Я учитель</span>
+        <span class="pick__what">Собрать урок на сегодня, показать ссылку и QR-код на проекторе, ответы к контрольным, таймер.</span>
+        <span class="pick__go">Открыть кабинет учителя →</span>
+      </a>
+      <a class="pick pick--survey" href="anketa.html">
+        <span class="badge badge--warn pick__badge">Начни с этого</span>
+        <span class="pick__icon" data-icon="pencil"></span>
+        <span class="pick__who">Анкета</span>
+        <span class="pick__what">Каким будет сайт? 7 вопросов на бумажных листах. Ответы уходят тому, кого ты выберешь.</span>
+        <span class="pick__go">Пройти анкету →</span>
+      </a>
+    </section>
 
-  <aside class="sticky-note" id="stickyNote" aria-label="Предпросмотр сайта">
-    <div class="sticky-note__tape" aria-hidden="true"></div>
-    <p class="sticky-note__title">Так сейчас выглядит сайт</p>
-    <div class="sticky-note__frame">
-      <iframe id="previewFrame" title="Предпросмотр сайта класса" src="site.html?embed=1" tabindex="-1" loading="lazy"></iframe>
-    </div>
-    <a class="sticky-note__link" id="previewLink" href="site.html" target="_blank" rel="noopener">Открыть сайт целиком ↗</a>
-  </aside>
+    <!-- ───── Кто для кого ───── -->
+    <section class="land__section" id="roles">
+      <p class="eyebrow" data-icon-before="tests">Туториал</p>
+      <h2>Что для кого</h2>
+      <p class="muted">Каждый пользуется своей частью сайта.</p>
+      <div class="who-grid">
+        <article class="card who">
+          <h3><span class="who__icon" data-icon="user"></span>Ученик</h3>
+          <ul class="ticks" data-ticks>
+            <li>Проходит <b>анкету</b> и выбирает, кому её отправить</li>
+            <li>Делает <b>задания</b>: пишет ответы и записывает голос</li>
+            <li>Пишет <b>контрольные</b> с таймером и сразу видит оценку</li>
+            <li>Играет на перемене и тренируется печатать</li>
+            <li>В конце урока <b>отправляет результаты</b> учительнице</li>
+          </ul>
+          <a class="btn" href="site.html?tour=1">Тур по сайту ученика</a>
+        </article>
+        <article class="card who">
+          <h3><span class="who__icon" data-icon="book"></span>Учитель</h3>
+          <ul class="ticks" data-ticks>
+            <li>Собирает <b>урок на сегодня</b>: тему, сообщение и задания</li>
+            <li>Показывает ссылку и <b>QR-код</b> на проекторе</li>
+            <li>Смотрит <b>ответы к контрольным</b> (по коду)</li>
+            <li>Запускает <b>таймер</b> на весь экран</li>
+            <li>Получает результаты учеников в Suhtlus или на почту</li>
+          </ul>
+          <a class="btn" href="teacher.html?tour=1">Тур по кабинету учителя</a>
+        </article>
+        <article class="card who">
+          <h3><span class="who__icon" data-icon="code"></span>Автор сайта</h3>
+          <ul class="ticks" data-ticks>
+            <li>Получает <b>анкеты</b> на почту</li>
+            <li>Смотрит, что выбрал класс: стиль, цвет, разделы</li>
+            <li>Добавляет то, что просили в «Что ещё добавить на сайт»</li>
+            <li>Сайт перестраивается сам — каждый ответ это кусочек кода</li>
+          </ul>
+          <a class="btn btn--ghost" href="site.html#/settings">Как сайт пишет себя</a>
+        </article>
+      </div>
+    </section>
+
+    <!-- ───── Кто кому отправляет ───── -->
+    <section class="land__section" id="flow">
+      <p class="eyebrow" data-icon-before="megaphone">Туториал</p>
+      <h2>Кто кому что отправляет</h2>
+      <div class="flow" aria-label="Схема: кто кому отправляет">
+        <div class="flow__node flow__node--teacher"><span data-icon="book"></span><b>Учитель</b></div>
+        <div class="flow__arrow flow__arrow--down"><span>ссылка на урок и QR-код</span></div>
+        <div class="flow__node flow__node--student"><span data-icon="user"></span><b>Ученики</b></div>
+        <div class="flow__split">
+          <div class="flow__branch">
+            <div class="flow__arrow flow__arrow--down"><span>результаты урока и анкета</span></div>
+            <div class="flow__node flow__node--teacher"><span data-icon="megaphone"></span><b>Учительница</b><small data-recipient="teacher"></small></div>
+          </div>
+          <div class="flow__branch">
+            <div class="flow__arrow flow__arrow--down"><span>анкета: каким сделать сайт</span></div>
+            <div class="flow__node flow__node--author"><span data-icon="code"></span><b>Автор сайта</b><small data-recipient="author"></small></div>
+          </div>
+        </div>
+      </div>
+      <div class="card note">
+        <h3>Почему «скопировать текст»?</h3>
+        <p class="muted">Если у адресата нет почты в настройках (например, учительница общается через Suhtlus), сайт не может отправить письмо сам. Тогда ученик получает готовый текст, нажимает «Скопировать» и вставляет его в Suhtlus: «Новое сообщение» → выбрать учительницу → Ctrl + V → отправить.</p>
+      </div>
+    </section>
+
+    <!-- ───── Как проходит урок ───── -->
+    <section class="land__section" id="steps">
+      <p class="eyebrow" data-icon-before="clock">Туториал</p>
+      <h2>Как проходит урок — по шагам</h2>
+      <ol class="steps">
+        <li><b>Учитель</b> открывает кабинет учителя → «Урок на сегодня», отмечает задания и нажимает «Показать на проекторе».</li>
+        <li><b>Ученики</b> сканируют QR-код или вводят ссылку — на главной видно задания на сегодня и сообщение учителя.</li>
+        <li>Если ученик здесь впервые, <b>короткий тур</b> покажет, где что находится. Его можно открыть снова кнопкой «?».</li>
+        <li>Ученики делают задания и контрольные. Всё сохраняется на компьютере, за которым они сидят.</li>
+        <li>В конце урока: «Мои результаты» → <b>«Отправить результаты»</b> → выбрать, кому.</li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="land__foot">Компьютерный класс · сайт сделан учеником для своего класса</footer>
 
   <script src="config.js"></script>
-  <script src="js/engine.js"></script>
-  <script src="js/questions.js"></script>
-  <script src="js/send.js"></script>
-  <script src="js/exam.js"></script>
+  <script src="js/site/ui.js"></script>
+  <script src="js/landing.js"></script>
 </body>
 </html>

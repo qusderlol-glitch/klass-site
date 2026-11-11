@@ -1,55 +1,81 @@
 /*
- * Отправка анкеты на почту.
+ * Отправка писем: анкеты и результатов ученика.
  * Сайт статический (без своего сервера), поэтому письма отправляет бесплатный сервис FormSubmit.
- * Если в config.js почта не указана — результат просто показывается на экране.
+ * Кому отправлять — список RECIPIENTS в config.js.
+ * Если у адресата нет почты (например, учительница пишет в Suhtlus), ученик получает
+ * готовый текст и копирует его сам.
  */
 (function () {
-  function buildText(info) {
-    const lines = Engine.describe().map((x) => x.question + '\n  → ' + (x.answer || '— нет ответа —'));
-    return (
-      'Ученик: ' + (info.name || '— не указано —') +
-      (info.klass ? ' (' + info.klass + ')' : '') + '\n\n' +
-      lines.join('\n\n') +
-      '\n\nПожелания: ' + (info.comment || '— нет —')
-    );
-  }
+  const cfg = () => window.CONFIG || {};
 
   const Sender = {
-    hasEmail() {
-      return Boolean(window.CONFIG && window.CONFIG.EMAIL);
+    recipients() { return cfg().RECIPIENTS || []; },
+    recipient(id) { return this.recipients().find((r) => r.id === id); },
+
+    // Текст анкеты: то, что нужно для сайта, в понятном виде
+    surveyText(info) {
+      const lines = Engine.describe().map((x) => x.question + '\n  → ' + (x.answer || '— нет ответа —'));
+      return (
+        'Анкета: сайт для компьютерного класса\n' +
+        'Ученик: ' + (info.name || '— не указано —') + (info.klass ? ', класс ' + info.klass : '') + '\n\n' +
+        lines.join('\n\n') +
+        '\n\nСвоя идея для сайта: ' + (info.comment || '— нет —') +
+        '\n\nСайт с этими ответами: ' + this.siteLink()
+      );
     },
 
-    // info: { name, klass, comment, honey }
-    async send(info) {
-      const text = buildText(info);
-      if (!this.hasEmail()) return { ok: true, mode: 'local', text };
-
-      const body = {
-        _subject: (window.CONFIG.SUBJECT || 'Анкета') + (info.name ? ' — ' + info.name : ''),
-        _template: 'table',
-        _captcha: 'false',
-        _honey: info.honey || '',
+    surveyFields(info) {
+      const f = {
         'Ученик': info.name || '— не указано —',
         'Класс': info.klass || '— не указан —'
       };
-      Engine.describe().forEach((x) => { body[x.question] = x.answer || '— нет ответа —'; });
-      body['Пожелания'] = info.comment || '— нет —';
-      body['Ссылка на сайт с этими ответами'] = location.href.replace(/[^/]*$/, '') + 'site.html?' + Engine.encode();
+      Engine.describe().forEach((x) => { f[x.question] = x.answer || '— нет ответа —'; });
+      f['Своя идея для сайта'] = info.comment || '— нет —';
+      f['Сайт с этими ответами'] = this.siteLink();
+      return f;
+    },
 
+    siteLink() {
+      return new URL('site.html?' + Engine.encode(), location.href).href;
+    },
+
+    async post(email, subject, fields, honey) {
+      const body = Object.assign({
+        _subject: subject,
+        _template: 'table',
+        _captcha: 'false',
+        _honey: honey || ''
+      }, fields);
       try {
-        const res = await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(window.CONFIG.EMAIL), {
+        const res = await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(email), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
           body: JSON.stringify(body)
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || data.success === 'false' || data.success === false) {
-          return { ok: false, text, error: data.message || 'Почтовый сервис не принял анкету.' };
+          return { ok: false, error: data.message || 'Почтовый сервис не принял письмо.' };
         }
-        return { ok: true, mode: 'email', text };
+        return { ok: true };
       } catch (e) {
-        return { ok: false, text, error: 'Нет связи с интернетом или почтовый сервис недоступен.' };
+        return { ok: false, error: 'Нет связи с интернетом или почтовый сервис недоступен.' };
       }
+    },
+
+    /*
+     * Доставить письмо выбранным адресатам.
+     * Возвращает список: { recipient, mode: 'email' | 'copy', ok, error }
+     */
+    async deliver(ids, { subject, fields, text, honey }) {
+      const out = [];
+      for (const id of ids) {
+        const r = this.recipient(id);
+        if (!r) continue;
+        if (!r.email) { out.push({ recipient: r, mode: 'copy', ok: true, text }); continue; }
+        const res = await this.post(r.email, subject, fields, honey);
+        out.push(Object.assign({ recipient: r, mode: 'email', text }, res));
+      }
+      return out;
     }
   };
 

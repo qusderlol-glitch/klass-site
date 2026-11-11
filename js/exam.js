@@ -15,7 +15,7 @@
   const ROT = ['-0.5deg', '0.45deg', '-0.35deg', '0.6deg', '-0.55deg', '0.3deg', '-0.4deg', '0.5deg', '-0.3deg'];
   const CHECK = '<svg viewBox="0 0 38 38" aria-hidden="true"><path pathLength="1" d="M5 20 C9 23 12 26 15 31 C19 21 26 11 35 4"/></svg>';
 
-  const info = { name: '', klass: '', comment: '' };
+  const info = { name: '', klass: '', comment: '', sendTo: null };
   const pages = [];          // { el, kind, q?, refresh? }
   let current = 0;
   let sending = false;
@@ -74,7 +74,7 @@
             <li><b>Листай вниз</b> — следующий лист выезжает снизу. Можно листать колёсиком мыши или клавишей <b>PageDown</b>.</li>
             <li>Отметь <b>✓</b> подходящий вариант. Можно нажать цифру на клавиатуре: <b>1</b> — первый вариант, <b>2</b> — второй…</li>
             <li>Каждый ответ — это кусочек кода. Сайт на жёлтом стикере собирается сам, пока ты отвечаешь.</li>
-            <li>На последнем листе проверь ответы и нажми <b>«Сдать работу»</b>.</li>
+            <li>На последнем листе проверь ответы, выбери, <b>кому отправить</b> анкету, и нажми <b>«Сдать работу»</b>.</li>
           </ol>
         </div>
       </div>
@@ -150,15 +150,17 @@
   // ───── Последний лист ─────
   function buildFinal() {
     const index = SHEETS - 1;
+    const recips = Sender.recipients();
     const el = makePage(index, `
       <p class="sheet__task">Завершение</p>
       <h2 class="sheet__q">Проверь работу и сдай</h2>
       <p class="sheet__hint">Если что-то не так — нажми на ответ, вернёшься к нужному листу.</p>
       <ol class="check-list" data-summary></ol>
-      <label class="field__label" for="fComment">Что ещё добавить или поменять на сайте? (можно не писать)</label>
-      <textarea class="lined" id="fComment" maxlength="800" rows="4"></textarea>
+      <label class="field__label" for="fComment">Своя идея: что добавить или поменять на сайте? (можно не писать)</label>
+      <textarea class="lined" id="fComment" maxlength="800" rows="3"></textarea>
+      <p class="field__label send-to__title">Кому отправить анкету?</p>
+      <div class="answers send-to" role="radiogroup" aria-label="Кому отправить анкету" data-send-to></div>
       <input type="text" id="fHoney" class="sr-only" tabindex="-1" autocomplete="off" aria-hidden="true">
-      ${Sender.hasEmail() ? '' : '<p class="note-demo">Демо: почта пока не подключена — результат покажется прямо на листе.</p>'}
       <p class="error" data-error hidden></p>
       <div data-done></div>
       <div class="sheet__foot" data-foot>
@@ -167,6 +169,39 @@
       </div>`);
     $('#fComment', el).addEventListener('input', (e) => { info.comment = e.target.value.trim(); });
     $('[data-submit]', el).addEventListener('click', submit);
+
+    // варианты «кому отправить»
+    const box = $('[data-send-to]', el);
+    const choices = recips.map((r) => ({
+      id: r.id,
+      label: r.label,
+      desc: r.email ? (r.hint ? r.hint + ' · ' : '') + 'придёт на почту' : (r.hint || '') + ' · ты скопируешь готовый текст'
+    }));
+    if (recips.length > 1) choices.push({ id: 'all', label: 'Всем сразу', desc: recips.map((r) => r.label.toLowerCase()).join(' и ') });
+    choices.forEach((c, j) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'answer';
+      b.setAttribute('role', 'radio');
+      b.dataset.id = c.id;
+      b.innerHTML = `
+        <span class="answer__box">${CHECK}</span>
+        <span class="answer__letter">${LETTERS[j]})</span>
+        <span class="answer__text"><span class="answer__label">${esc(c.label)}</span><span class="answer__desc">${esc(c.desc)}</span></span>`;
+      b.addEventListener('click', () => {
+        if (submitted) return;
+        info.sendTo = c.id;
+        box.querySelectorAll('.answer').forEach((x) => {
+          const on = x.dataset.id === c.id;
+          x.classList.toggle('is-selected', on);
+          x.setAttribute('aria-checked', String(on));
+        });
+      });
+      box.appendChild(b);
+    });
+    // если адресат один — выбран сразу
+    if (choices.length === 1) box.firstElementChild.click();
+
     pages.push({ el, kind: 'final' });
     refreshFinal();
   }
@@ -206,20 +241,33 @@
       err.textContent = 'Ответь на все задания. Пропущены листы: ' + missing.join(', ') + '.';
       return;
     }
+    if (!info.sendTo) {
+      err.hidden = false;
+      err.textContent = 'Выбери, кому отправить анкету.';
+      return;
+    }
     err.hidden = true;
     sending = true;
     const btn = $('[data-submit]', final);
     btn.disabled = true;
     btn.textContent = 'Отправляю…';
 
-    const res = await Sender.send({ ...info, honey: $('#fHoney').value });
+    const ids = info.sendTo === 'all' ? Sender.recipients().map((r) => r.id) : [info.sendTo];
+    const results = await Sender.deliver(ids, {
+      subject: (window.CONFIG.SUBJECT || 'Анкета') + (info.name ? ' — ' + info.name : '') + (info.klass ? ', ' + info.klass : ''),
+      fields: Sender.surveyFields(info),
+      text: Sender.surveyText(info),
+      honey: $('#fHoney').value
+    });
     sending = false;
 
-    if (!res.ok) {
+    // всё, что должно было уйти на почту, не ушло — даём попробовать ещё раз
+    const failed = results.filter((r) => !r.ok);
+    if (failed.length === results.length) {
       btn.disabled = false;
       btn.textContent = 'Сдать ещё раз';
       err.hidden = false;
-      err.textContent = res.error + ' Попробуй ещё раз или позови учителя.';
+      err.textContent = failed[0].error + ' Попробуй ещё раз или позови учителя.';
       return;
     }
 
@@ -238,21 +286,47 @@
     const done = $('[data-done]', final);
     const siteUrl = 'site.html?' + Engine.encode();
     done.innerHTML = `
-      <p class="scribble" style="margin:18px 0 0">${res.mode === 'email' ? 'Спасибо! Анкета отправлена учителю.' : 'Спасибо! Вот что получилось:'}</p>
-      ${res.mode === 'local' ? `<pre class="result-text">${esc(res.text)}</pre>` : ''}
+      <p class="scribble" style="margin:18px 0 6px">Спасибо!</p>
+      <ul class="delivery">${results.map((r) => `
+        <li class="${r.ok ? '' : 'is-bad'}">
+          ${r.mode === 'email'
+            ? (r.ok ? '✓ ' + esc(r.recipient.label) + ': анкета отправлена на почту.' : '✗ ' + esc(r.recipient.label) + ': не отправилось — ' + esc(r.error))
+            : '✎ ' + esc(r.recipient.label) + ': скопируй текст ниже и отправь ' + (r.recipient.suhtlus ? 'в Suhtlus' : 'сам') + '.'}
+        </li>`).join('')}
+      </ul>
+      ${results.some((r) => r.mode === 'copy') ? `
+        <div class="copy-box">
+          <p class="copy-box__how">Как отправить в Suhtlus: открой Suhtlus → «Новое сообщение» → выбери учительницу → вставь текст (Ctrl + V) → отправь.</p>
+          <textarea class="result-text" readonly rows="8">${esc(Sender.surveyText(info))}</textarea>
+          <button class="btn-paper btn-paper--ink" type="button" data-copy>Скопировать текст</button>
+        </div>` : ''}
       <div class="done-actions">
         <a class="btn-paper btn-paper--ink" href="${siteUrl}">Открыть сайт, который получился →</a>
         <button class="btn-paper" type="button" data-again>Заполнить заново</button>
       </div>`;
     $('[data-again]', done).addEventListener('click', restart);
+    const copyBtn = $('[data-copy]', done);
+    if (copyBtn) copyBtn.addEventListener('click', () => copyText($('textarea', done), copyBtn));
   }
 
-  // Имя ученика пригодится на сайте класса
+  async function copyText(ta, btn) {
+    try {
+      await navigator.clipboard.writeText(ta.value);
+    } catch (e) {
+      ta.select();
+      document.execCommand('copy');
+    }
+    btn.textContent = 'Скопировано ✓';
+    setTimeout(() => { btn.textContent = 'Скопировать текст'; }, 2000);
+  }
+
+  // Имя и класс ученика пригодятся на сайте класса
   function rememberStudent() {
-    if (!info.name) return;
+    if (!info.name && !info.klass) return;
     try {
       const d = JSON.parse(localStorage.getItem('klass-data') || '{}');
-      d.name = info.name;
+      if (info.name) d.name = info.name;
+      if (info.klass) d.klass = info.klass;
       localStorage.setItem('klass-data', JSON.stringify(d));
     } catch (e) { /* память недоступна */ }
   }
@@ -260,6 +334,7 @@
   function restart() {
     Engine.reset();
     info.name = info.klass = info.comment = '';
+    info.sendTo = null;
     submitted = false;
     stack.innerHTML = '';
     pages.length = 0;

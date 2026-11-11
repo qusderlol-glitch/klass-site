@@ -1,0 +1,116 @@
+/* Стартовая страница: выбор роли и туториал «кто для кого» */
+.hdr__nav { display: flex; gap: 4px; }
+.hdr__nav a { color: inherit; text-decoration: none; font-weight: 600; font-size: 0.95rem; padding: 8px 12px; border-radius: var(--radius-sm); }
+.hdr__nav a:hover { background: rgba(255, 255, 255, 0.18); }
+
+.land { max-width: 1120px; margin: 0 auto; padding: 36px 24px 56px; }
+.land__hero { text-align: center; max-width: 760px; margin: 0 auto 28px; }
+.land__hero h1 { font-size: 2.4rem; margin-bottom: 0.3em; }
+.land__hero p { font-size: 1.12rem; }
+
+.roles-pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.pick {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 26px 24px 22px;
+  text-decoration: none;
+  color: var(--text);
+  background: var(--surface);
+  border: var(--border);
+  border-top: 5px solid var(--pick, var(--accent));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.pick:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(20, 30, 60, 0.12); }
+.pick--student { --pick: hsl(218 60% 40%); }
+.pick--teacher { --pick: hsl(150 55% 30%); }
+.pick--survey  { --pick: hsl(18 75% 45%); }
+.pick__icon { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: color-mix(in srgb, var(--pick) 12%, transparent); color: var(--pick); }
+.pick__icon .ico { width: 28px; height: 28px; }
+.pick__who { font-size: 1.5rem; font-weight: 700; }
+.pick__what { color: var(--muted); flex: 1; }
+.pick__go { font-weight: 700; color: var(--pick); }
+.pick__badge { position: absolute; top: 16px; right: 16px; }
+
+.land__section { margin-top: 56px; }
+.land__section > h2 { font-size: 1.75rem; }
+
+.who-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
+.who-grid > .card + .card { margin-top: 0; }
+.who { display: flex; flex-direction: column; }
+.who h3 { display: flex; align-items: center; gap: 10px; font-size: 1.3rem; }
+.who__icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--accent-ink); }
+.who .ticks { flex: 1; }
+.who .btn { align-self: flex-start; }
+
+/* схема «кто кому» */
+.flow { display: flex; flex-direction: column; align-items: center; margin: 22px 0 18px; }
+.flow__node {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  min-width: 200px;
+  padding: 14px 20px;
+  text-align: center;
+  background: var(--surface);
+  border: 2px solid var(--node);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.flow__node .ico { width: 28px; height: 28px; color: var(--node); }
+.flow__node b { font-size: 1.1rem; }
+.flow__node small { color: var(--muted); }
+.flow__node--teacher { --node: hsl(150 55% 30%); }
+.flow__node--student { --node: hsl(218 60% 40%); }
+.flow__node--author  { --node: hsl(18 75% 45%); }
+.flow__arrow { position: relative; display: flex; justify-content: center; height: 70px; width: 2px; background: var(--muted); margin: 0 auto; }
+.flow__arrow::after { content: ""; position: absolute; bottom: -1px; left: 50%; margin-left: -7px; border: 7px solid transparent; border-top: 9px solid var(--muted); border-bottom: 0; }
+.flow__arrow span {
+  position: absolute; top: 50%; left: 14px; transform: translateY(-50%);
+  white-space: nowrap; font-size: 0.9rem; font-weight: 600; color: var(--muted);
+  background: var(--bg); padding: 2px 6px;
+}
+/* развилка: от учеников вниз, потом в две стороны */
+.flow__split { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 24px; }
+.flow__split::before { content: ""; position: absolute; top: 0; left: 25%; right: 25%; height: 2px; background: var(--muted); }
+.flow__split::after { content: ""; position: absolute; top: -24px; left: 50%; width: 2px; height: 24px; margin-left: -1px; background: var(--muted); }
+.flow__branch { display: flex; flex-direction: column; align-items: center; }
+
+.note { max-width: 760px; margin: 0 auto; }
+
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 12px; }
+.steps li {
+  position: relative;
+  padding: 16px 18px 16px 70px;
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-size: 1.05rem;
+}
+.steps li::before {
+  counter-increment: s;
+  content: counter(s);
+  position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+  display: grid; place-items: center;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--accent); color: var(--accent-text);
+  font-weight: 700;
+}
+
+.land__foot { padding: 24px; text-align: center; color: var(--muted); border-top: var(--border); background: var(--surface); }
+
+@media (max-width: 900px) {
+  .roles-pick, .who-grid { grid-template-columns: 1fr; }
+  .hdr__nav { display: none; }
+  .land__hero h1 { font-size: 1.8rem; }
+  .flow__split { grid-template-columns: 1fr; gap: 0; margin-top: 0; }
+  .flow__split::before, .flow__split::after { display: none; }
+  .flow__arrow span { white-space: normal; width: 160px; }
+}
+@media (max-width: 560px) {
+  .land { padding: 24px 16px 40px; }
+  .flow__node { min-width: 0; width: 100%; }
+}
