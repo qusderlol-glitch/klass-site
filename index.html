@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Сайт для компьютерного класса — опрос</title>
+  <meta name="description" content="Ответь на несколько вопросов — и сайт для нашего компьютерного класса соберётся сам.">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__brand">
+      <span class="topbar__logo" aria-hidden="true">▣</span>
+      <div>
+        <h1>Сайт для компьютерного класса</h1>
+        <p>Ответь на вопросы — и справа сайт соберётся сам</p>
+      </div>
+    </div>
+    <span class="badge">Демо-версия</span>
+  </header>
+
+  <main class="layout">
+    <!-- Левая колонка: опрос -->
+    <section class="panel survey" aria-label="Опрос">
+      <div class="progress" aria-hidden="true"><div class="progress__bar" id="progressBar"></div></div>
+      <div class="survey__meta" id="surveyMeta"></div>
+      <div id="surveyBody"></div>
+      <div class="survey__nav" id="surveyNav"></div>
+    </section>
+
+    <!-- Правая колонка: живой предпросмотр -->
+    <section class="panel preview" aria-label="Предпросмотр сайта">
+      <div class="tabs" role="tablist">
+        <button class="tabs__btn is-active" role="tab" data-tab="site" aria-selected="true">Сайт</button>
+        <button class="tabs__btn" role="tab" data-tab="code" aria-selected="false">Код, который сайт написал сам</button>
+      </div>
+
+      <div class="preview__stage" id="tabSite">
+        <div class="site" id="site"></div>
+      </div>
+
+      <div class="preview__stage preview__code" id="tabCode" hidden>
+        <p class="code-note">Каждый ответ — это кусочек кода. Когда ты выбираешь вариант, нужный кусочек сам вписывается сюда и меняет сайт. Ничего не нужно переписывать вручную.</p>
+        <pre class="code" id="codeView" aria-live="polite"></pre>
+      </div>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/questions.js"></script>
+  <script src="js/features.js"></script>
+  <script src="js/send.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
