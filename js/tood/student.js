@@ -242,13 +242,11 @@
           <div class="exam__bar card">
             <div><p class="eyebrow">${L('Test', 'Тест')}${w.code ? ' · ' + esc(w.code) : ''}</p><b class="exam__title">${esc(Core.title(w))}</b></div>
             ${w.minutes ? `<div class="exam__time"><span class="muted small">${L('Aega jäänud', 'Осталось')}</span><span class="timer" data-timer>--:--</span></div>` : ''}
-            <div class="exam__progress" aria-hidden="true"><span data-progress></span></div>
           </div>
           <div class="exam__grid">
             <nav class="exam__nav card" aria-label="${L('Küsimused', 'Вопросы')}">
               <p class="label">${L('Küsimused', 'Вопросы')}</p>
               <div class="dots dots--rings" data-dots></div>
-              <p class="muted small exam__legend"><span class="ring-demo ring-demo--0"></span>${L('pole alustatud', 'не начато')}<br><span class="ring-demo ring-demo--5"></span>${L('pooleli', 'начато')}<br><span class="ring-demo ring-demo--1"></span>${L('valmis', 'готово')}</p>
             </nav>
             <section class="card exam__q" data-q></section>
           </div>
@@ -270,7 +268,6 @@
         dots.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => { pos = Number(b.dataset.go); draw(); }));
         const done = e.order.filter((t) => topFill(t) === 1).length;
         count.textContent = L('Valmis ', 'Готово ') + done + ' / ' + e.order.length;
-        el.querySelector('[data-progress]').style.width = Math.round((done / e.order.length) * 100) + '%';
       }
 
       // Ühe küsimuse vastamise koht
@@ -368,7 +365,7 @@
             <button class="btn btn--ghost" type="button" data-prev ${pos === 0 ? 'disabled' : ''}>← ${L('Eelmine', 'Назад')}</button>
             ${!last
               ? `<button class="btn btn--lg" type="button" data-next>${L('Järgmine', 'Дальше')} →</button>`
-              : `<button class="btn btn--ok btn--lg btn--pulse" type="button" data-finish>${icon('check')} ${L('Esita töö', 'Сдать работу')}</button>`}
+              : `<button class="btn btn--ok btn--lg" type="button" data-finish>${icon('check')} ${L('Esita töö', 'Сдать работу')}</button>`}
           </div>`));
         if (last) qBox.appendChild(h(`<p class="muted small exam__last">${L('See oli viimane küsimus. Kui oled valmis, vajuta «Esita töö».', 'Это был последний вопрос. Если готов, нажми «Сдать работу».')}</p>`));
         const pv = qBox.querySelector('[data-prev]');

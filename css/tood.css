@@ -307,3 +307,13 @@
 }
 .ins__menu[hidden], .lk-hints[hidden], .img-preview[hidden], [data-pane][hidden] { display: none !important; }
 @media (max-width: 560px) { .save-bar { position: static; } .hdr__titles small { display: none; } }
+
+/* ───── Range ja tõsine välimus testis ───── */
+.ring { background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--surface-2) 0) !important; }
+.ring--1 span { background: var(--accent-soft); color: var(--accent-ink); }
+.opt.is-on { animation: none; }
+.done-card__icon { animation: none; background: var(--accent-soft); color: var(--accent-ink); }
+.dot:hover { transform: none; }
+.test-card:hover { transform: none; box-shadow: none; border-color: var(--accent); }
+.q-anim, .q-anim--back { animation: fadeIn 0.2s ease-out both; }
+.test-card, .steps-cards > li, .tiles > .tile, .qcard { animation: fadeIn 0.25s ease-out both; }
