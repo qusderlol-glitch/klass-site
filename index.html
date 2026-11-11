@@ -3,55 +3,33 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Сайт для компьютерного класса — опрос</title>
-  <meta name="description" content="Ответь на несколько вопросов — и сайт для нашего компьютерного класса соберётся сам.">
-  <link rel="stylesheet" href="css/app.css">
-  <link rel="stylesheet" href="css/site.css">
+  <title>Анкета — сайт для компьютерного класса</title>
+  <meta name="description" content="Анкета для учеников: ответь на вопросы — и сайт компьютерного класса соберётся сам.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=PT+Sans:wght@400;700&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap">
+  <link rel="stylesheet" href="css/exam.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="topbar__brand">
-      <span class="topbar__logo" aria-hidden="true">▣</span>
-      <div>
-        <h1>Сайт для компьютерного класса</h1>
-        <p>Ответь на вопросы — и справа сайт соберётся сам</p>
-      </div>
+  <div class="ink-progress" aria-hidden="true"><div class="ink-progress__bar" id="inkBar"></div></div>
+
+  <nav class="sheet-tabs" id="sheetTabs" aria-label="Листы анкеты"></nav>
+
+  <main class="stack" id="stack"></main>
+
+  <aside class="sticky-note" id="stickyNote" aria-label="Предпросмотр сайта">
+    <div class="sticky-note__tape" aria-hidden="true"></div>
+    <p class="sticky-note__title">Так сейчас выглядит сайт</p>
+    <div class="sticky-note__frame">
+      <iframe id="previewFrame" title="Предпросмотр сайта класса" src="site.html?embed=1" tabindex="-1" loading="lazy"></iframe>
     </div>
-    <span class="badge">Демо-версия</span>
-  </header>
-
-  <main class="layout">
-    <!-- Левая колонка: опрос -->
-    <section class="panel survey" aria-label="Опрос">
-      <div class="progress" aria-hidden="true"><div class="progress__bar" id="progressBar"></div></div>
-      <div class="survey__meta" id="surveyMeta"></div>
-      <div id="surveyBody"></div>
-      <div class="survey__nav" id="surveyNav"></div>
-    </section>
-
-    <!-- Правая колонка: живой предпросмотр -->
-    <section class="panel preview" aria-label="Предпросмотр сайта">
-      <div class="tabs" role="tablist">
-        <button class="tabs__btn is-active" role="tab" data-tab="site" aria-selected="true">Сайт</button>
-        <button class="tabs__btn" role="tab" data-tab="code" aria-selected="false">Код, который сайт написал сам</button>
-      </div>
-
-      <div class="preview__stage" id="tabSite">
-        <div class="site" id="site"></div>
-      </div>
-
-      <div class="preview__stage preview__code" id="tabCode" hidden>
-        <p class="code-note">Каждый ответ — это кусочек кода. Когда ты выбираешь вариант, нужный кусочек сам вписывается сюда и меняет сайт. Ничего не нужно переписывать вручную.</p>
-        <pre class="code" id="codeView" aria-live="polite"></pre>
-      </div>
-    </section>
-  </main>
+    <a class="sticky-note__link" id="previewLink" href="site.html" target="_blank" rel="noopener">Открыть сайт целиком ↗</a>
+  </aside>
 
   <script src="config.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/questions.js"></script>
-  <script src="js/features.js"></script>
   <script src="js/send.js"></script>
-  <script src="js/main.js"></script>
+  <script src="js/exam.js"></script>
 </body>
 </html>

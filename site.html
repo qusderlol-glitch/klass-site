@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ru" class="site">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Компьютерный класс</title>
+  <meta name="description" content="Сайт компьютерного класса: задания, контрольные, игры и клавиатурный тренажёр.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Neucha&family=PT+Sans:wght@400;700&family=Rubik:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <a class="skip" href="#view">Перейти к содержимому</a>
+
+  <header class="hdr">
+    <a class="hdr__brand" href="#/">
+      <span class="hdr__mark" data-icon="monitor"></span>
+      <span class="hdr__titles">
+        <b>Компьютерный класс</b>
+        <small>Кабинет информатики</small>
+      </span>
+    </a>
+    <div class="hdr__right">
+      <button class="chip" type="button" id="studentChip"></button>
+      <a class="icon-btn" href="#/settings" aria-label="Настройки сайта" title="Настройки сайта" data-icon="gear"></a>
+    </div>
+  </header>
+
+  <div class="shell">
+    <nav class="side" id="sideNav" aria-label="Разделы сайта"></nav>
+    <main class="main" id="view" tabindex="-1"></main>
+  </div>
+
+  <dialog class="dialog" id="nameDialog" aria-labelledby="nameDialogTitle">
+    <form method="dialog" class="dialog__form" id="nameForm">
+      <h2 id="nameDialogTitle">Как тебя зовут?</h2>
+      <p class="muted">Имя видно только на этом компьютере.</p>
+      <input class="input" id="nameInput" type="text" maxlength="40" autocomplete="off" placeholder="Например, Ваня">
+      <div class="dialog__actions">
+        <button class="btn btn--ghost" value="cancel" type="submit">Отмена</button>
+        <button class="btn" value="save" type="submit" id="nameSave">Сохранить</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="config.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/questions.js"></script>
+  <script src="js/site/store.js"></script>
+  <script src="js/site/data.js"></script>
+  <script src="js/site/ui.js"></script>
+  <script src="js/site/games.js"></script>
+  <script src="js/site/pages.js"></script>
+  <script src="js/site/app.js"></script>
+</body>
+</html>
