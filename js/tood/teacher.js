@@ -7,7 +7,8 @@
     ['multi', L('Mitu õiget vastust', 'Несколько правильных')],
     ['short', L('Lühivastus (sõna või number)', 'Короткий ответ (слово или число)')],
     ['text', L('Pikk vastus (tekst)', 'Развёрнутый ответ (текст)')],
-    ['voice', L('Häälvastus', 'Голосовой ответ')]
+    ['voice', L('Häälvastus', 'Голосовой ответ')],
+    ['copy', L('Kiri: ümberkirjutamine või etteütlus', 'Письмо: переписать или диктант')]
   ];
 
   function drawQR(el, text, size) {
@@ -23,7 +24,7 @@
 
   // Tahvel / projektor: kõik suurelt
   function projector(w, url) {
-    const code = Core.codeOf(w);
+    const code = w.code || '';
     const ov = h(`
       <div class="projector" role="dialog" aria-modal="true">
         <div class="projector__bar">
@@ -36,9 +37,9 @@
             <ol class="projector__steps">
               <li>${L('Ava sait ja sisene:', 'Открой сайт и войди:')}<b class="projector__url">${esc(Core.siteUrl())}</b></li>
               ${code
-                ? `<li>${L('«Minu tööd» → sisesta kood:', '«Мои работы» → введи код:')}<b class="projector__code">${esc(code)}</b></li>`
+                ? `<li>${L('Vahekaart «Testid» → sisesta kood:', 'Вкладка «Testid» → введи код:')}<b class="projector__code">${esc(code)}</b></li>`
                 : `<li>${L('Ava link, mille saatsin Stuudiumis, või skaneeri QR-kood.', 'Открой ссылку из Stuudium или отсканируй QR-код.')}</li>`}
-              <li>${L('Vajuta «Alusta». Lõpus «Esita».', 'Нажми «Начать». В конце «Сдать».')}</li>
+              <li>${L('Vajuta «Alusta testi». Lõpus «Esita».', 'Нажми «Начать тест». В конце «Сдать».')}</li>
             </ol>
           </div>
           <div class="projector__qr"><div data-qr></div><p>${L('või skaneeri telefoniga', 'или отсканируй телефоном')}</p></div>
@@ -53,6 +54,13 @@
     ov.querySelector('[data-full]').addEventListener('click', () => { if (ov.requestFullscreen) ov.requestFullscreen().catch(() => UI.toast('F11')); });
   }
 
+  async function loadWork(id) {
+    if (id && id[0] === 'k') { try { return await DB.get(id.slice(1)); } catch (e) { return null; } }
+    return Core.teacherWorks()[id] || null;
+  }
+
+  const offlineNote = () => DB.online ? '' : `<div class="alert alert--warn">${icon('megaphone')} ${L('Firebase pole veel ühendatud: testid on näha ainult selles arvutis. Kui Firebase on config.js-is, näevad kõik õpilased teste oma arvutis.', 'Firebase ещё не подключён: тесты видны только на этом компьютере. Когда Firebase будет в config.js, все ученики увидят тесты на своих компьютерах.')}</div>`;
+
   function sampleWork() {
     const u = Core.user() || {};
     return {
@@ -62,6 +70,8 @@
       klass: '',
       minutes: 15,
       instructions: L('Loe küsimused hoolikalt läbi. Lõpus vajuta «Esita».', 'Внимательно читай вопросы. В конце нажми «Сдать».'),
+      description: L('Arvuti osad, paroolid ja internetiturvalisus.', 'Части компьютера, пароли и безопасность в интернете.'),
+      allowTypos: true,
       teacher: { name: u.name || '', email: u.email || '' },
       showAnswers: true,
       created: Date.now(),
@@ -88,11 +98,13 @@
 
   const Teacher = {
     // ───────── Töölaud ─────────
-    dash() {
+    async dash() {
       const u = Core.user() || {};
-      const works = Object.values(Core.teacherWorks()).sort((a, b) => (b.created || 0) - (a.created || 0));
+      let works = [];
+      try { works = await DB.list(); } catch (e) { works = []; }
       const el = h(`
         <div class="page">
+          ${offlineNote()}
           <section class="hero card">
             <div>
               <p class="hero__date">${new Date().toLocaleDateString(LANG.locale(), { weekday: 'long', day: 'numeric', month: 'long' })}</p>
@@ -122,17 +134,18 @@
             </div>
             ${works.length ? `
               <div class="table-wrap"><table class="table works">
-                <thead><tr><th>${L('Töö', 'Работа')}</th><th>${L('Küsimusi', 'Вопросов')}</th><th>${L('Aeg', 'Время')}</th><th>${L('Loodud', 'Создана')}</th><th></th></tr></thead>
+                <thead><tr><th>${L('Kood', 'Код')}</th><th>${L('Töö', 'Работа')}</th><th>${L('Küsimusi', 'Вопросов')}</th><th>${L('Aeg', 'Время')}</th><th>${L('Loodud', 'Создана')}</th><th></th></tr></thead>
                 <tbody>${works.map((w) => `
                   <tr>
+                    <td><b class="code-chip">${esc(w.code || '')}</b></td>
                     <td><b>${esc(w.title)}</b>${w.klass ? `<br><span class="muted small">${esc(w.klass)}</span>` : ''}</td>
                     <td>${w.questions.length}</td>
                     <td>${w.minutes ? w.minutes + ' ' + L('min', 'мин') : '—'}</td>
-                    <td class="muted">${new Date(w.created).toLocaleDateString(LANG.locale())}</td>
+                    <td class="muted">${new Date(w.created || w.updated || Date.now()).toLocaleDateString(LANG.locale())}</td>
                     <td class="works__act">
                       <a class="btn btn--sm" href="#/jaga/${w.id}">${L('Jaga', 'Поделиться')}</a>
                       <a class="btn btn--ghost btn--sm" href="#/muuda/${w.id}">${L('Muuda', 'Изменить')}</a>
-                      <button class="btn btn--ghost btn--sm btn--danger" type="button" data-del="${w.id}">${L('Kustuta', 'Удалить')}</button>
+                      <button class="btn btn--ghost btn--sm btn--danger" type="button" data-del="${esc(w.code || '')}">${L('Kustuta', 'Удалить')}</button>
                     </td>
                   </tr>`).join('')}</tbody>
               </table></div>` : `
@@ -145,22 +158,21 @@
         </div>`);
       el.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => {
         if (!confirm(L('Kustutada töö? Õpilastel, kes selle juba avasid, jääb see alles.', 'Удалить работу? У учеников, которые её уже открыли, она останется.'))) return;
-        Core.deleteTeacherWork(b.dataset.del);
-        App.render();
+        DB.remove(b.dataset.del).then(() => App.render()).catch((e) => UI.toast(String(e.message || e)));
       }));
       const s = el.querySelector('[data-sample]');
-      if (s) s.addEventListener('click', () => { const w = sampleWork(); Core.saveTeacherWork(w); location.hash = '#/jaga/' + w.id; });
+      if (s) s.addEventListener('click', async () => { s.disabled = true; const w = await DB.publish(sampleWork()); location.hash = '#/jaga/' + w.id; });
       return { el };
     },
 
     // ───────── Töö koostamine / muutmine ─────────
-    edit(id) {
+    async edit(id) {
       const u = Core.user() || {};
-      const existing = id ? Core.teacherWorks()[id] : null;
+      const existing = id ? await loadWork(id) : null;
       if (id && !existing) return { el: h(`<div class="page"><p>${L('Tööd ei leitud.', 'Работа не найдена.')}</p></div>`) };
       const w = existing ? JSON.parse(JSON.stringify(existing)) : {
         id: Core.newId(), title: '', subject: L('Informaatika', 'Информатика'), klass: '', minutes: 20, instructions: '',
-        teacher: { name: u.name || '', email: u.email || '' }, showAnswers: true, created: Date.now(), questions: []
+        teacher: { name: u.name || '', email: u.email || '' }, showAnswers: true, allowTypos: true, description: '', created: Date.now(), questions: []
       };
 
       const el = h(`
@@ -177,9 +189,11 @@
               <label class="field-row"><span class="label">${L('Aine', 'Предмет')}</span><input class="input" data-w="subject" maxlength="40"></label>
               <label class="field-row"><span class="label">${L('Klass', 'Класс')}</span><input class="input" data-w="klass" maxlength="10" placeholder="6A"></label>
               <label class="field-row"><span class="label">${L('Aeg minutites (0 = piiramatu)', 'Время в минутах (0 = без ограничения)')}</span><input class="input" data-w="minutes" type="number" min="0" max="180"></label>
+              <label class="field-row form-grid__wide"><span class="label">${L('Kirjeldus (näha testide nimekirjas)', 'Описание (видно в списке тестов)')}</span><input class="input" data-w="description" maxlength="160" placeholder="${L('nt Arvuti osad ja nende ülesanded', 'напр. Части компьютера и их задачи')}"></label>
               <label class="field-row form-grid__wide"><span class="label">${L('Juhend õpilastele', 'Инструкция ученикам')}</span><textarea class="input" data-w="instructions" rows="2" maxlength="400"></textarea></label>
               <label class="field-row form-grid__wide"><span class="label">${L('Tulemused saata e-postile', 'Результаты отправлять на e-mail')}</span><input class="input" data-w="email" type="email" maxlength="80" placeholder="opetaja@kool.ee">
                 <span class="muted small">${L('Kui jätad tühjaks, saadavad õpilased tulemuse Stuudiumis (kopeerivad teksti).', 'Если оставить пустым, ученики пришлют результат в Stuudium (скопируют текст).')}</span></label>
+              <label class="check-row form-grid__wide"><input type="checkbox" data-w="allowTypos"> ${L('Paranda väikesed trükivead (nt «klaviatuuur» = «klaviatuur»)', 'Исправлять мелкие опечатки (напр. «процесор» = «процессор»)')}</label>
               <label class="check-row form-grid__wide"><input type="checkbox" data-w="showAnswers"> ${L('Näita õpilasele pärast esitamist õigeid vastuseid', 'Показывать ученику правильные ответы после сдачи')}</label>
             </div>
           </section>
@@ -209,14 +223,17 @@
       wf('title').value = w.title; wf('subject').value = w.subject || ''; wf('klass').value = w.klass || '';
       wf('minutes').value = w.minutes || 0; wf('instructions').value = w.instructions || '';
       wf('email').value = (w.teacher && w.teacher.email) || ''; wf('showAnswers').checked = w.showAnswers !== false;
+      wf('description').value = w.description || ''; wf('allowTypos').checked = w.allowTypos !== false;
       el.querySelectorAll('[data-w]').forEach((inp) => inp.addEventListener('input', () => {
         const k = inp.dataset.w;
         if (k === 'minutes') w.minutes = Math.max(0, Math.min(180, Number(inp.value) || 0));
         else if (k === 'email') w.teacher.email = inp.value.trim();
         else if (k === 'showAnswers') w.showAnswers = inp.checked;
+        else if (k === 'allowTypos') w.allowTypos = inp.checked;
         else w[k] = inp.value;
       }));
       wf('showAnswers').addEventListener('change', () => { w.showAnswers = wf('showAnswers').checked; });
+      wf('allowTypos').addEventListener('change', () => { w.allowTypos = wf('allowTypos').checked; });
 
       const qsBox = el.querySelector('[data-qs]');
 
@@ -224,6 +241,7 @@
         if (type === 'single' || type === 'multi') return { type, q: '', a: ['', ''], right: type === 'multi' ? [] : 0, points: 1 };
         if (type === 'short') return { type, q: '', answers: [], points: 1 };
         if (type === 'text') return { type, q: '', minWords: 20, points: 2 };
+        if (type === 'copy') return { type, q: L('Kirjuta tekst', 'Напиши текст'), source: '', mode: 'copy', points: 5 };
         return { type: 'voice', q: '', minSec: 15, points: 2 };
       }
       // panga küsimus → oma küsimus (saab muuta)
@@ -235,6 +253,7 @@
         if (q.answers) c.answers = q.answers.slice();
         if (q.minWords) c.minWords = q.minWords;
         if (q.minSec) c.minSec = q.minSec;
+        if (q.source) { c.source = q.source; c.mode = q.mode; }
         w.questions[k] = c;
       }
 
@@ -286,6 +305,17 @@
               body.appendChild(opts);
             } else if (q.type === 'short') {
               body.appendChild(h(`<label class="field-row"><span class="label small">${L('Õiged vastused (komaga eraldatud)', 'Правильные ответы (через запятую)')}</span><input class="input" data-f="answers" value="${esc((q.answers || []).join(', '))}" placeholder="8, kaheksa"></label>`));
+            } else if (q.type === 'copy') {
+              body.appendChild(h(`<div class="qopts">
+                <label class="field-row"><span class="label small">${L('Kuidas õpilane kirjutab?', 'Как ученик пишет?')}</span>
+                  <select class="input" data-f="mode">
+                    <option value="copy" ${q.mode !== 'dictation' ? 'selected' : ''}>${L('Kirjutab ümber (tekst on ekraanil)', 'Переписывает (текст на экране)')}</option>
+                    <option value="dictation" ${q.mode === 'dictation' ? 'selected' : ''}>${L('Etteütlus (õpetaja loeb ette, teksti ei näe)', 'Диктант (учитель читает, текста не видно)')}</option>
+                  </select></label>
+                <label class="field-row"><span class="label small">${L('Õige tekst (selle järgi kontrollitakse)', 'Правильный текст (по нему проверяется)')}</span>
+                  <textarea class="input" rows="3" data-f="source" placeholder="${L('Kass istub aknal ja vaatab lund.', 'Кот сидит на окне и смотрит на снег.')}">${esc(q.source || '')}</textarea></label>
+                <p class="muted small">${L('Punktid antakse kattuvuse järgi: 90% sarnane tekst = 90% punktidest. Väike trükiviga sõnas on pool viga.', 'Баллы по совпадению: текст совпал на 90% = 90% баллов. Мелкая опечатка в слове — половина ошибки.')}</p>
+              </div>`));
             } else if (q.type === 'text') {
               body.appendChild(h(`<label class="field-row field-row--short"><span class="label small">${L('Soovituslik sõnade arv', 'Желательное число слов')}</span><input class="input" type="number" min="0" max="500" data-f="minWords" value="${q.minWords || 0}"></label>`));
             } else {
@@ -302,6 +332,7 @@
             else if (t.dataset.f === 'answers') cur.answers = t.value.split(',').map((s) => s.trim()).filter(Boolean);
             else if (t.dataset.f === 'minWords') cur.minWords = Number(t.value) || 0;
             else if (t.dataset.f === 'minSec') cur.minSec = Number(t.value) || 0;
+            else if (t.dataset.f === 'source') cur.source = t.value;
             else if (t.dataset.opt != null) cur.a[Number(t.dataset.opt)] = t.value;
           });
           card.addEventListener('change', (ev) => {
@@ -311,11 +342,13 @@
               if (cur.bank) unbank(k);
               const old = w.questions[k];
               const n = blank(t.value);
-              n.q = old.q || '';
+              n.q = old.q || n.q;
               n.points = old.points;
               if ((n.type === 'single' || n.type === 'multi') && old.a) n.a = old.a.slice();
               w.questions[k] = n;
               drawQs();
+            } else if (t.dataset.f === 'mode') {
+              cur.mode = t.value;
             } else if (t.dataset.right != null) {
               const j = Number(t.dataset.right);
               if (cur.type === 'multi') {
@@ -357,7 +390,7 @@
         drawQs();
       }));
 
-      el.querySelector('[data-save]').addEventListener('click', () => {
+      el.querySelector('[data-save]').addEventListener('click', async () => {
         const err = el.querySelector('[data-err]');
         const problems = [];
         if (!w.title.trim()) problems.push(L('Lisa pealkiri.', 'Добавьте название.'));
@@ -373,6 +406,7 @@
             if (q.type === 'multi' && !(q.right || []).length) problems.push(n + L('märgi õiged vastused.', 'отметьте правильные ответы.'));
           }
           if (q.type === 'short' && !(q.answers || []).length) problems.push(n + L('lisa õige vastus.', 'добавьте правильный ответ.'));
+          if (q.type === 'copy' && !String(q.source || '').trim()) problems.push(n + L('lisa õige tekst.', 'добавьте правильный текст.'));
         });
         if (w.teacher.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(w.teacher.email)) problems.push(L('Kontrolli e-posti aadressi.', 'Проверьте e-mail.'));
         if (problems.length) {
@@ -382,10 +416,17 @@
           return;
         }
         w.teacher.name = (Core.user() || {}).name || w.teacher.name;
-        w.updated = Date.now();
-        Core.saveTeacherWork(w);
-        UI.toast(L('Töö salvestatud', 'Работа сохранена'));
-        location.hash = '#/jaga/' + w.id;
+        const btn = el.querySelector('[data-save]');
+        btn.disabled = true;
+        try {
+          const saved = await DB.publish(w);
+          UI.toast(L('Test salvestatud, kood ', 'Тест сохранён, код ') + saved.code);
+          location.hash = '#/jaga/' + saved.id;
+        } catch (e) {
+          btn.disabled = false;
+          err.hidden = false;
+          err.textContent = L('Salvestamine ebaõnnestus: ', 'Не удалось сохранить: ') + String(e.message || e);
+        }
       });
 
       drawQs();
@@ -394,15 +435,15 @@
 
     // ───────── Jagamine ─────────
     async share(id) {
-      const w = Core.teacherWorks()[id];
+      const w = await loadWork(id);
       if (!w) return { el: h(`<div class="page"><p>${L('Tööd ei leitud.', 'Работа не найдена.')}</p></div>`) };
       const enc = await Core.encode(w);
       const url = Core.workUrl(enc);
-      const code = Core.codeOf(w);
+      const code = w.code || '';
       const email = (w.teacher && w.teacher.email) || '';
       const stuudiumMsg = L(
-        'Tere! Uus töö: «' + w.title + '».\n1) Ava link: ' + url + '\n2) Sisene oma nimega.\n3) Vajuta «Alusta» ja lõpus «Esita».' + (w.minutes ? '\nAeg: ' + w.minutes + ' min.' : ''),
-        'Здравствуйте! Новая работа: «' + w.title + '».\n1) Откройте ссылку: ' + url + '\n2) Войдите под своим именем.\n3) Нажмите «Начать», в конце «Сдать».' + (w.minutes ? '\nВремя: ' + w.minutes + ' мин.' : '')
+        'Tere! Uus test: «' + w.title + '».' + (code ? '\nKood: ' + code + ' (vahekaart «Testid»)' : '') + '\n1) Ava link: ' + url + '\n2) Sisene oma nimega.\n3) Vajuta «Alusta testi» ja lõpus «Esita».' + (w.minutes ? '\nAeg: ' + w.minutes + ' min.' : ''),
+        'Здравствуйте! Новый тест: «' + w.title + '».' + (code ? '\nКод: ' + code + ' (вкладка «Testid»)' : '') + '\n1) Откройте ссылку: ' + url + '\n2) Войдите под своим именем.\n3) Нажмите «Начать тест», в конце «Сдать».' + (w.minutes ? '\nВремя: ' + w.minutes + ' мин.' : '')
       );
       const mailto = 'mailto:?subject=' + encodeURIComponent(L('Uus töö: ', 'Новая работа: ') + w.title) + '&body=' + encodeURIComponent(stuudiumMsg);
 
@@ -427,7 +468,7 @@
               </section>
               <section class="card share-way">
                 <h2>${icon('monitor')} ${L('Tahvel / projektor', 'Доска / проектор')}</h2>
-                <p class="muted">${code ? L('Õpilased sisestavad koodi lehel «Minu tööd».', 'Ученики вводят код на странице «Мои работы».') : L('Selle töö jaoks pole lühikest koodi (küsimused on sinu omad). Näita QR-koodi või saada link Stuudiumis.', 'У этой работы нет короткого кода (вопросы ваши). Покажите QR-код или отправьте ссылку в Stuudium.')}</p>
+                <p class="muted">${L('Õpilased avavad vahekaardi «Testid», sisestavad koodi ja vajutavad «Alusta testi».', 'Ученики открывают вкладку «Testid», вводят код и нажимают «Начать тест».')}</p>
                 <button class="btn" type="button" data-proj>${icon('monitor')} ${L('Näita tahvlil', 'Показать на доске')}</button>
               </section>
               <section class="card share-way">
@@ -438,7 +479,8 @@
             </div>
             <div>
               <section class="card share">
-                ${code ? `<div class="share__code"><span class="small muted">${L('Töö kood', 'Код работы')}</span><b>${esc(code)}</b></div>` : ''}
+                ${offlineNote()}
+                ${code ? `<div class="share__code"><span class="small muted">${L('Testi kood', 'Код теста')}</span><b>${esc(code)}</b></div>` : ''}
                 <div class="share__qr" data-qr></div>
                 <p class="muted small">${L('QR-kood avab töö otse.', 'QR-код открывает работу сразу.')}</p>
               </section>
@@ -476,8 +518,9 @@
     },
 
     // ───────── Tulemused ja vastused ─────────
-    results() {
-      const works = Object.values(Core.teacherWorks()).sort((a, b) => (b.created || 0) - (a.created || 0));
+    async results() {
+      let works = [];
+      try { works = await DB.list(); } catch (e) { works = []; }
       const el = h(`
         <div class="page">
           <div class="page-head">
@@ -494,10 +537,27 @@
           <h2 class="section-title">${L('Vastuste võtmed', 'Ключи ответов')}</h2>
           ${works.length ? works.map((w) => `
             <details class="card key-card">
-              <summary><b>${esc(w.title)}</b> <span class="muted small">· ${w.questions.length} ${L('küsimust', 'вопр.')}</span></summary>
+              <summary><b class="code-chip">${esc(w.code || '')}</b> <b>${esc(w.title)}</b> <span class="muted small">· ${w.questions.length} ${L('küsimust', 'вопр.')}</span></summary>
               <ol class="keys">${w.questions.map((raw) => { const q = Core.q(raw); return `<li><span>${esc(q.q)}</span><b>${esc(Core.rightText(q))}</b></li>`; }).join('')}</ol>
             </details>`).join('') : `<p class="muted">${L('Töid veel pole.', 'Работ пока нет.')}</p>`}
         </div>`);
+      return { el };
+    },
+
+    // ───────── Klassi leht (lihtkood) ─────────
+    async leht() {
+      let text = '';
+      try { text = await DB.getPage(); } catch (e) { text = ''; }
+      const el = h(`
+        <div class="page page--wide">
+          <div class="page-head">
+            <h1>${L('Klassi leht', 'Страница класса')}</h1>
+            <p class="muted">${L('Tee õpilastele leht ilma programmeerimata: kirjuta lihtsaid käske või vajuta plokinuppe. Paremal näed kohe tulemust. Õpilased näevad lehte vahekaardil «Klassi leht».', 'Сделайте страницу для учеников без программирования: пишите простые команды или нажимайте кнопки-блоки. Справа сразу видно результат. Ученики увидят её во вкладке «Страница класса».')}</p>
+          </div>
+          ${offlineNote()}
+          <div data-ed></div>
+        </div>`);
+      el.querySelector('[data-ed]').appendChild(Lihtkood.editor(text, (t) => DB.savePage(t)));
       return { el };
     },
 

@@ -9,7 +9,8 @@
     multi: L('Vali kõik õiged vastused', 'Выбери все правильные ответы'),
     short: L('Kirjuta lühike vastus', 'Напиши короткий ответ'),
     text: L('Kirjuta vastus', 'Напиши ответ'),
-    voice: L('Vasta häälega', 'Ответь голосом')
+    voice: L('Vasta häälega', 'Ответь голосом'),
+    copy: L('Kirjuta tekst', 'Напиши текст')
   }[t]);
 
   const statusBadge = (e) => {
@@ -17,15 +18,6 @@
     if (e.status === 'progress') return `<span class="badge badge--warn">${L('Pooleli', 'В процессе')}</span>`;
     return `<span class="badge badge--ok">${L('Esitatud', 'Сдана')}${e.result && e.result.mark ? ' · ' + L('hinne ', 'оценка ') + e.result.mark : ''}</span>`;
   };
-
-  // Lingist või koodist töö avamine
-  function parseInput(v) {
-    v = v.trim();
-    const m = v.match(/#\/ava\/([A-Za-z0-9_-]+)/);
-    if (m) return { enc: m[1] };
-    if (/^[0-9]+([^0-9]+[0-9]+)+$/.test(v)) return { code: v };
-    return null;
-  }
 
   async function deliver(entry) {
     const u = Core.user() || {};
@@ -41,6 +33,75 @@
   }
 
   const Student = {
+    // ───────── Testid: kood + kõik tööd ─────────
+    async testid() {
+      let works = [];
+      let failed = '';
+      try { works = await DB.list(); } catch (er) { failed = String(er.message || er); }
+      const mine = Core.myWorks();
+      const el = h(`
+        <div class="page">
+          <section class="card code-hero" id="codeBox">
+            <div class="code-hero__steps">
+              <span class="code-step is-on"><b>1</b> ${L('Sisesta kood', 'Введи код')}</span>
+              <span class="code-step"><b>2</b> ${L('Alusta testi', 'Начни тест')}</span>
+              <span class="code-step"><b>3</b> ${L('Esita', 'Сдай')}</span>
+            </div>
+            <h1>${L('Sisesta testi kood', 'Введи код теста')}</h1>
+            <p class="muted">${L('Kood on tahvlil, näiteks', 'Код на доске, например')} <b>A1AAA</b>.</p>
+            <form class="code-hero__form" data-code-form>
+              <input class="input code-hero__input" maxlength="5" autocomplete="off" spellcheck="false" placeholder="A1AAA" aria-label="${L('Testi kood', 'Код теста')}" data-code>
+              <button class="btn btn--lg" type="submit">${L('Alusta testi', 'Начать тест')} →</button>
+            </form>
+            <p class="alert alert--warn" data-err hidden></p>
+          </section>
+
+          <section class="card" id="testList">
+            <h2>${icon('tests')} ${L('Kõik testid', 'Все тесты')}</h2>
+            ${failed ? `<div class="alert alert--warn">${L('Teste ei saanud laadida', 'Не удалось загрузить тесты')}: ${esc(failed)}</div>` : ''}
+            ${!DB.online ? `<p class="muted small">${L('Näha on selles arvutis loodud testid.', 'Видны тесты, созданные на этом компьютере.')}</p>` : ''}
+            ${works.length ? `<div class="test-cards">${works.map((w) => {
+              const e = mine[w.id];
+              return `
+                <article class="test-card">
+                  <div class="test-card__top"><span class="test-card__code">${esc(w.code)}</span>${statusBadge(e)}</div>
+                  <h3>${esc(Core.title(w))}</h3>
+                  ${w.description ? `<p class="muted">${esc(w.description)}</p>` : ''}
+                  <p class="meta">${icon('tests')} ${w.questions.length} ${L('küsimust', 'вопр.')} · ${icon('clock')} ${minutesText(w.minutes)}${w.teacher && w.teacher.name ? ' · ' + icon('user') + ' ' + esc(w.teacher.name) : ''}</p>
+                  ${e && e.status === 'done'
+                    ? `<a class="btn btn--ghost" href="#/tulemus/${w.id}">${L('Vaata tulemust', 'Посмотреть результат')}</a>`
+                    : `<button class="btn" type="button" data-start="${esc(w.code)}">${e && e.status === 'progress' ? L('Jätka', 'Продолжить') : L('Alusta testi', 'Начать тест')} →</button>`}
+                </article>`;
+            }).join('')}</div>` : `<div class="empty empty--inline"><p class="muted">${L('Teste veel pole. Kui õpetaja loob testi, ilmub see siia.', 'Тестов пока нет. Когда учитель создаст тест, он появится здесь.')}</p></div>`}
+          </section>
+        </div>`);
+
+      const form = el.querySelector('[data-code-form]');
+      const inp = form.querySelector('[data-code]');
+      const err = el.querySelector('[data-err]');
+      inp.addEventListener('input', () => { inp.value = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); err.hidden = true; });
+      form.addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        const v = inp.value.trim();
+        if (Core.numOf(v) == null) { err.hidden = false; err.textContent = L('Kood on 5 märki: täht, number ja 3 tähte, näiteks B3AAA.', 'Код — 5 знаков: буква, цифра и 3 буквы, например B3AAA.'); return; }
+        location.hash = '#/kood/' + Core.normCode(v);
+      });
+      el.querySelectorAll('[data-start]').forEach((b) => b.addEventListener('click', () => { location.hash = '#/kood/' + b.dataset.start; }));
+      setTimeout(() => inp.focus(), 50);
+      return { el };
+    },
+
+    // ───────── Klassi leht (õpetaja tehtud) ─────────
+    async page() {
+      let text = '';
+      try { text = await DB.getPage(); } catch (er) { /* tühi */ }
+      const { blocks } = Lihtkood.parse(text);
+      return { el: h(`
+        <div class="page page--narrow">
+          <div class="card lk-page">${text.trim() ? Lihtkood.render(blocks) : `<p class="muted">${L('Õpetaja pole veel klassi lehte teinud.', 'Учитель ещё не сделал страницу класса.')}</p>`}</div>
+        </div>`) };
+    },
+
     // ───────── Minu tööd ─────────
     list() {
       const works = Object.values(Core.myWorks()).sort((a, b) => (b.added || 0) - (a.added || 0));
@@ -48,18 +109,8 @@
         <div class="page">
           <div class="page-head">
             <h1>${L('Minu tööd', 'Мои работы')}</h1>
-            <p class="muted">${L('Siin on tööd, mille õpetaja sulle andis. Vali töö ja vajuta «Alusta».', 'Здесь работы, которые дал учитель. Выбери работу и нажми «Начать».')}</p>
+            <p class="muted">${L('Siin on testid, mida oled alustanud või esitanud.', 'Здесь тесты, которые ты начал или сдал.')}</p>
           </div>
-
-          <section class="card add-work" id="addWork">
-            <h2>${icon('pencil')} ${L('Lisa töö', 'Добавить работу')}</h2>
-            <p class="muted small">${L('Sisesta kood tahvlilt (näiteks 10-1-4-7) või kleebi link, mille õpetaja saatis Stuudiumis või e-postiga.', 'Введи код с доски (например 10-1-4-7) или вставь ссылку, которую учитель прислал в Stuudium или по e-mail.')}</p>
-            <form class="row row--tight" data-add>
-              <input class="input" type="text" placeholder="${L('Kood või link', 'Код или ссылка')}" aria-label="${L('Kood või link', 'Код или ссылка')}" data-input>
-              <button class="btn" type="submit">${L('Ava', 'Открыть')}</button>
-            </form>
-            <p class="alert alert--warn" data-err hidden></p>
-          </section>
 
           <section class="card" id="workList">
             <h2>${icon('tests')} ${L('Tööd', 'Работы')}</h2>
@@ -89,19 +140,11 @@
               <div class="empty empty--inline">
                 <div class="empty__icon">${icon('tests')}</div>
                 <p><b>${L('Töid veel pole.', 'Работ пока нет.')}</b></p>
-                <p class="muted">${L('Õpetaja saadab lingi Stuudiumis või e-postiga või näitab koodi tahvlil. Sisesta see ülal.', 'Учитель пришлёт ссылку в Stuudium или по e-mail, или покажет код на доске. Введи его выше.')}</p>
+                <p class="muted">${L('Ava vahekaart «Testid» ja sisesta kood.', 'Открой вкладку «Testid» и введи код.')}</p><div class="row row--center"><a class="btn" href="#/">Testid</a></div>
               </div>`}
           </section>
         </div>`);
 
-      const form = el.querySelector('[data-add]');
-      const err = el.querySelector('[data-err]');
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const p = parseInput(form.querySelector('[data-input]').value);
-        if (!p) { err.hidden = false; err.textContent = L('See ei ole kood ega töö link. Kontrolli ja proovi uuesti.', 'Это не код и не ссылка на работу. Проверь и попробуй ещё раз.'); return; }
-        location.hash = p.enc ? '#/ava/' + p.enc : '#/kood/' + p.code;
-      });
       return { el };
     },
 
@@ -113,8 +156,9 @@
       location.replace('#/too/' + w.id);
       return { el: h('<div class="page"><p class="muted">…</p></div>') };
     },
-    openCode(code) {
-      const w = Core.fromCode(decodeURIComponent(code));
+    async openCode(code) {
+      let w = null;
+      try { w = await DB.get(decodeURIComponent(code)); } catch (er) { w = null; }
       if (!w) return Student.broken();
       Core.addWork(w);
       location.replace('#/too/' + w.id);
@@ -138,7 +182,7 @@
       const g = Core.grade(w, []);
       const el = h(`
         <div class="page page--narrow">
-          ${back('#/', L('Minu tööd', 'Мои работы'))}
+          ${back('#/', 'Testid')}
           <article class="card">
             <p class="eyebrow">${icon('tests')} ${L('Töö', 'Работа')}</p>
             <h1>${esc(Core.title(w))}</h1>
@@ -262,6 +306,18 @@
           ta.addEventListener('input', () => { upd(); set(ta.value); });
           upd();
           area.appendChild(box);
+        } else if (q.type === 'copy') {
+          const box = h(`<div>
+            ${q.mode === 'dictation'
+              ? `<div class="alert alert--info">${icon('megaphone')} ${L('Õpetaja loeb teksti ette. Kirjuta see allolevasse kasti.', 'Учитель диктует текст. Пиши его в поле ниже.')}</div>`
+              : `<div class="copy-src"><p class="label">${L('Kirjuta see tekst ümber', 'Перепиши этот текст')}</p><p>${esc(q.source || '')}</p></div>`}
+            <textarea class="input textarea" rows="6" spellcheck="false" placeholder="${L('Kirjuta siia…', 'Пиши здесь…')}" aria-label="${L('Sinu tekst', 'Твой текст')}"></textarea>
+          </div>`);
+          const ta = box.querySelector('textarea');
+          ta.value = e.answers[i] || '';
+          ta.addEventListener('input', () => set(ta.value));
+          ta.addEventListener('paste', (ev) => { ev.preventDefault(); UI.toast(L('Kleepida ei saa — kirjuta ise!', 'Вставлять нельзя — пиши сам!')); });
+          area.appendChild(box);
         } else if (q.type === 'voice') {
           if (!recorders[i]) {
             const k = i;
@@ -341,7 +397,7 @@
 
       const el = h(`
         <div class="page page--narrow">
-          ${back('#/', L('Minu tööd', 'Мои работы'))}
+          ${back('#/', 'Testid')}
           <section class="card">
             ${e.byTime ? `<div class="alert alert--warn">${L('Aeg sai otsa — töö esitati automaatselt.', 'Время вышло — работа сдана автоматически.')}</div>` : ''}
             <div class="result">
@@ -377,12 +433,16 @@
             <h2>${L('Vastuste ülevaade', 'Разбор ответов')}</h2>
             <ol class="review">${w.questions.map((raw, k) => {
               const q = Core.q(raw);
-              const ok = r.per[k].ok;
-              return `<li class="review__item ${ok === null ? 'is-voice' : ok ? 'is-ok' : 'is-bad'}">
-                <span class="review__icon">${icon(ok === null ? 'pencil' : ok ? 'check' : 'cross')}</span>
+              const p = r.per[k];
+              const ok = p.ok;
+              const good = ok || p.earned > 0;
+              return `<li class="review__item ${ok === null ? 'is-voice' : good ? 'is-ok' : 'is-bad'}">
+                <span class="review__icon">${icon(ok === null ? 'pencil' : good ? 'check' : 'cross')}</span>
                 <div><b>${esc(q.q)}</b>
                   <p>${L('Sinu vastus', 'Твой ответ')}: ${esc(Core.answerText(q, e.answers[k]))}</p>
-                  ${ok === false ? `<p class="review__right">${L('Õige', 'Правильно')}: ${esc(Core.rightText(q))}</p>` : ''}
+                  ${p.typo ? `<p class="muted small">${L('Väike trükiviga — loetud õigeks.', 'Небольшая опечатка — засчитано.')}</p>` : ''}
+                  ${q.type === 'copy' ? `<p class="muted small">${L('Kattuvus originaaliga', 'Совпадение с оригиналом')}: ${Math.round((p.score || 0) * 100)}% · ${p.earned} / ${p.pts} ${L('p', 'б.')}</p>` : ''}
+                  ${ok === false && q.type !== 'copy' ? `<p class="review__right">${L('Õige', 'Правильно')}: ${esc(Core.rightText(q))}</p>` : ''}
                   ${ok === null ? `<p class="muted small">${L('Hindab õpetaja', 'Оценит учитель')}</p>` : ''}
                 </div></li>`;
             }).join('')}</ol>

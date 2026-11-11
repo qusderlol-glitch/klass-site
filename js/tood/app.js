@@ -22,7 +22,7 @@
     const u = Core.user();
     const teacher = u.role === 'teacher';
     document.getElementById('brandMark').innerHTML = icon(teacher ? 'book' : 'tests');
-    document.getElementById('brandTitle').textContent = teacher ? L('Õpetaja töölaud', 'Кабинет учителя') : L('Minu tööd', 'Мои работы');
+    document.getElementById('brandTitle').textContent = teacher ? L('Õpetaja töölaud', 'Кабинет учителя') : 'Testid';
     document.getElementById('brandSub').textContent = L('Arvutiklass', 'Компьютерный класс');
     document.getElementById('langSlot').innerHTML = LANG.toggle();
     document.getElementById('userChip').innerHTML = icon('user') + '<span>' + esc(u.name) + (u.klass ? ', ' + esc(u.klass) : '') + ' · ' + (teacher ? L('õpetaja', 'учитель') : L('õpilane', 'ученик')) + '</span>';
@@ -37,13 +37,16 @@
     const items = teacher
       ? [
           { id: '', title: L('Töölaud', 'Главная'), icon: 'home' },
-          { id: 'uus', title: L('Koosta töö', 'Создать работу'), icon: 'pencil' },
+          { id: 'uus', title: L('Koosta test', 'Создать тест'), icon: 'pencil' },
+          { id: 'leht', title: L('Klassi leht', 'Страница класса'), icon: 'code' },
           { id: 'tulemused', title: L('Tulemused ja vastused', 'Результаты и ответы'), icon: 'chart' },
           { id: 'taimer', title: L('Taimer', 'Таймер'), icon: 'clock' },
           { id: 'seaded', title: L('Seaded', 'Настройки'), icon: 'gear', bottom: true }
         ]
       : [
-          { id: '', title: L('Minu tööd', 'Мои работы'), icon: 'tests' },
+          { id: '', title: 'Testid', icon: 'tests' },
+          { id: 'minu', title: L('Minu tulemused', 'Мои результаты'), icon: 'chart' },
+          { id: 'leht', title: L('Klassi leht', 'Страница класса'), icon: 'book' },
           { id: 'harjutused', href: 'site.html', title: L('Harjutused ja mängud', 'Упражнения и игры'), icon: 'game' },
           { id: 'kusitlus', href: 'anketa.html', title: L('Küsitlus saidi kohta', 'Анкета о сайте'), icon: 'pencil' },
           { id: 'seaded', title: L('Seaded', 'Настройки'), icon: 'gear', bottom: true }
@@ -141,22 +144,26 @@
 
       let page;
       const onlyTeacher = ['uus', 'muuda', 'jaga', 'tulemused', 'taimer'];
+      if (!view.firstChild) view.innerHTML = '<div class="page"><p class="muted">…</p></div>';
       if (onlyTeacher.includes(route) && !teacher) page = { el: h(`<div class="page"><div class="card empty"><h1>${L('Ainult õpetajale', 'Только для учителя')}</h1><div class="row row--center"><a class="btn" href="#/">${L('Minu tööd', 'Мои работы')}</a></div></div></div>`) };
       else switch (route) {
-        case '': page = teacher ? Teacher.dash() : Student.list(); break;
+        case '': page = teacher ? await Teacher.dash() : await Student.testid(); break;
+        case 'minu': page = Student.list(); break;
+        case 'leht': page = teacher ? await Teacher.leht() : await Student.page(); break;
         case 'ava': page = await Student.open(arg); break;
-        case 'kood': page = Student.openCode(arg); break;
+        case 'kood': page = await Student.openCode(arg); break;
         case 'too': page = Student.intro(arg); break;
         case 'lahenda': page = Student.take(arg); break;
         case 'tulemus': page = Student.result(arg); break;
-        case 'uus': page = Teacher.edit(null); break;
-        case 'muuda': page = Teacher.edit(arg); break;
+        case 'uus': page = await Teacher.edit(null); break;
+        case 'muuda': page = await Teacher.edit(arg); break;
         case 'jaga': page = await Teacher.share(arg); break;
-        case 'tulemused': page = Teacher.results(); break;
+        case 'tulemused': page = await Teacher.results(); break;
         case 'taimer': page = Teacher.timer(); break;
         case 'seaded': page = settings(); break;
         default: page = Student.broken();
       }
+      if (location.hash.replace(/^#\/?/, '').split('/')[0] !== route) return;
       current = page;
       view.innerHTML = '';
       view.appendChild(page.el);
@@ -182,7 +189,8 @@
     const steps = teacher
       ? [
           { el: null, title: L('Õpetaja töölaud', 'Кабинет учителя'), text: L('Siin koostad töid ja jagad neid õpilastega. Näitan minutiga, mis kus on.', 'Здесь вы создаёте работы и отправляете их ученикам. Покажу за минуту, что где.') },
-          { el: '#sideNav [data-nav="uus"]', title: L('Koosta töö', 'Создать работу'), text: L('Kirjuta küsimused ise või vali küsimuste pangast. Määra aeg ja e-post tulemuste jaoks.', 'Напишите вопросы или возьмите из банка. Укажите время и e-mail для результатов.') },
+          { el: '#sideNav [data-nav="uus"]', title: L('Koosta test', 'Создать тест'), text: L('Kirjuta küsimused ja õiged vastused või vali pangast. Test saab koodi, näiteks A1AAA.', 'Напишите вопросы и правильные ответы или возьмите из банка. Тест получит код, например A1AAA.') },
+          { el: '#sideNav [data-nav="leht"]', title: L('Klassi leht', 'Страница класса'), text: L('Tee õpilastele leht lihtsate käskudega — nagu Scratch, aga tekstiga.', 'Сделайте страницу для учеников простыми командами — как Scratch, только текстом.') },
           { el: '#myWorks', title: L('Minu tööd', 'Мои работы'), text: L('Iga töö juures on nupp <b>«Jaga»</b>: Stuudiumi sõnum, e-kiri, kood ja QR tahvlile.', 'У каждой работы есть кнопка <b>«Поделиться»</b>: сообщение Stuudium, письмо, код и QR для доски.') },
           { el: '#sideNav [data-nav="tulemused"]', title: L('Tulemused ja vastused', 'Результаты и ответы'), text: L('Kuidas tulemused sinuni jõuavad ja kõigi tööde vastuste võtmed.', 'Как приходят результаты, и ключи ответов ко всем работам.') },
           { el: '#langSlot', title: L('Keel', 'Язык'), text: L('ET / RU — vaheta keelt igal ajal.', 'ET / RU — язык можно сменить в любой момент.') },
@@ -190,8 +198,8 @@
         ]
       : [
           { el: null, title: L('Tere tulemast!', 'Добро пожаловать!'), text: L('Siin lahendad töid, mille õpetaja sulle andis. Näitan, kuidas.', 'Здесь ты выполняешь работы, которые дал учитель. Покажу как.') },
-          { el: '#addWork', title: L('Lisa töö', 'Добавить работу'), text: L('Sisesta kood tahvlilt või kleebi link Stuudiumist. Kui avad lingi otse, lisatakse töö ise.', 'Введи код с доски или вставь ссылку из Stuudium. Если открыть ссылку сразу, работа добавится сама.') },
-          { el: '#workList', title: L('Vali töö', 'Выбери работу'), text: L('Vajuta <b>«Alusta»</b>, vasta küsimustele ja lõpus <b>«Esita»</b>. Tulemus läheb õpetajale.', 'Нажми <b>«Начать»</b>, ответь на вопросы и в конце <b>«Сдать»</b>. Результат уйдёт учителю.') },
+          { el: '#codeBox', title: L('1. Sisesta kood', '1. Введи код'), text: L('Kood on tahvlil, näiteks <b>A1AAA</b>. Kirjuta see siia ja vajuta <b>«Alusta testi»</b>.', 'Код на доске, например <b>A1AAA</b>. Напиши его сюда и нажми <b>«Начать тест»</b>.') },
+          { el: '#testList', title: L('…või vali nimekirjast', '…или выбери из списка'), text: L('Siin on kõik testid. Vasta küsimustele ja lõpus vajuta <b>«Esita»</b>.', 'Здесь все тесты. Ответь на вопросы и в конце нажми <b>«Сдать»</b>.') },
           { el: '#langSlot', title: L('Keel', 'Язык'), text: L('ET / RU — vali, kummas keeles lugeda.', 'ET / RU — выбери язык.') },
           { el: '#helpBtn', title: L('Abi', 'Помощь'), text: L('Nupp «?» näitab seda uuesti. Edu!', 'Кнопка «?» покажет это снова. Удачи!') }
         ];

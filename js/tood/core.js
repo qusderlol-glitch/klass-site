@@ -74,30 +74,36 @@
     workUrl(enc) { return new URL('tood.html', location.href).href + '#/ava/' + enc; },
     siteUrl() { return new URL('index.html', location.href).href.replace(/^https?:\/\//, '').replace(/index\.html$/, ''); },
 
-    // ───── Lühike kood (ainult panga küsimustega töö) ─────
-    // Kuju: <minutid>-<id>-<id>…  näiteks 10-1-4-7-12
-    codeOf(work) {
-      if (!work.questions.length || !work.questions.every((q) => q.bank)) return '';
-      return [work.minutes || 0].concat(work.questions.map((q) => q.bank)).join('-');
+    // ───── Töö kood: tähed ja numbrid ─────
+    // Töö number kirjutatakse 5 märgiga: täht, number, täht, täht, täht.
+    // Täht tähendab numbrit tähestikus: A=1, B=2 … I=9, J=0. Tühi koht: täht A, numbri kohal 1.
+    // Töö 1 = A1AAA, töö 23 = B3AAA, töö 247 = B4GAA.
+    // Numbrid, mille kood oleks juba kasutusel (11 = A1AAA nagu 1), jäetakse vahele.
+    codeOf(n) {
+      const d = String(n).split('');
+      if (!n || d.length > 5) return '';
+      const L1 = 'JABCDEFGHI';
+      const letter = (k) => (d[k] != null ? L1[Number(d[k])] : 'A');
+      return letter(0) + (d[1] != null ? d[1] : '1') + letter(2) + letter(3) + letter(4);
     },
-    fromCode(code) {
-      const parts = String(code).trim().split(/[^0-9]+/).filter(Boolean).map(Number);
-      if (parts.length < 2) return null;
-      const [minutes, ...ids] = parts;
-      if (!ids.every((id) => BANK.some((b) => b.id === id))) return null;
-      return {
-        id: 'c' + parts.join('-'),
-        title: '',   // pealkiri tuleb õpilase keeles (vt Core.title)
-        minutes,
-        questions: ids.map((id) => ({ bank: id, points: 1 })),
-        teacher: {},
-        showAnswers: true,
-        code: parts.join('-')
-      };
+    numOf(code) {
+      const c = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!/^[A-J][0-9][A-J]{3}$/.test(c)) return null;
+      const s = c.split('');
+      let len = 5;
+      while (len > 2 && s[len - 1] === 'A') len--;
+      if (len === 2 && s[1] === '1') len = 1;
+      const L1 = 'JABCDEFGHI';
+      let num = '';
+      for (let k = 0; k < len; k++) num += k === 1 ? s[k] : String(L1.indexOf(s[k]));
+      return Number(num);
     },
+    validNum(n) { return Core.numOf(Core.codeOf(n)) === n; },
+    nextNum(last) { let n = (last || 0) + 1; while (!Core.validNum(n)) n++; return n; },
+    normCode(code) { return String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); },
 
-    // Töö pealkiri (koodiga tööl — õpilase keeles)
-    title(w) { return w.title || L('Töö koodiga ', 'Работа с кодом ') + (w.code || ''); },
+    // Töö pealkiri
+    title(w) { return w.title || L('Töö ', 'Работа ') + (w.code || ''); },
 
     // Küsimus valitud keeles (panga küsimus võetakse pangast)
     q(question) {
@@ -109,13 +115,23 @@
     },
 
     // ───── Hindamine ─────
-    norm(s) { return String(s || '').toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, '').replace(/[.!?,;:]+$/, ''); },
-
-    check(q, a) {
-      if (q.type === 'single') return a === q.right;
-      if (q.type === 'multi') return Array.isArray(a) && JSON.stringify(a.slice().sort()) === JSON.stringify(q.right.slice().sort());
-      if (q.type === 'short') return (q.answers || []).some((x) => Core.norm(x) === Core.norm(a));
-      return null; // tekst ja hääl — hindab õpetaja
+    // Tagastab { ok: true/false/null, part: 0…1, typo, score }
+    check(q, a, allowTypos) {
+      if (q.type === 'single') { const ok = a === q.right; return { ok, part: ok ? 1 : 0 }; }
+      if (q.type === 'multi') {
+        const ok = Array.isArray(a) && JSON.stringify(a.slice().sort()) === JSON.stringify(q.right.slice().sort());
+        return { ok, part: ok ? 1 : 0 };
+      }
+      if (q.type === 'short') {
+        const m = Fuzzy.matchShort(a, q.answers, allowTypos !== false);
+        return { ok: m.ok, part: m.ok ? 1 : 0, typo: m.typo };
+      }
+      if (q.type === 'copy') {
+        const score = Fuzzy.copyScore(q.source || '', a || '');
+        const part = Math.round(score * 20) / 20;
+        return { ok: score >= 0.95, part, score };
+      }
+      return { ok: null, part: 0 }; // tekst ja hääl — hindab õpetaja
     },
 
     // Eesti 5-palliline skaala
@@ -132,11 +148,13 @@
       const per = work.questions.map((raw, i) => {
         const q = Core.q(raw);
         const pts = Number(raw.points != null ? raw.points : 1);
-        const ok = Core.check(q, answers[i]);
-        if (ok === null) manual += pts;
-        else { max += pts; if (ok) points += pts; }
-        return { ok, pts };
+        const c = Core.check(q, answers[i], work.allowTypos);
+        const earned = c.ok === null ? 0 : Math.round(pts * c.part * 10) / 10;
+        if (c.ok === null) manual += pts;
+        else { max += pts; points += earned; }
+        return Object.assign({ pts, earned }, c);
       });
+      points = Math.round(points * 10) / 10;
       const percent = max ? Math.round((points / max) * 100) : 0;
       return { points, max, manual, percent, mark: max ? Core.mark(percent) : null, per };
     },
@@ -152,6 +170,7 @@
       if (q.type === 'single') return q.a[q.right];
       if (q.type === 'multi') return q.right.map((j) => q.a[j]).join(', ');
       if (q.type === 'short') return (q.answers || []).join(' / ');
+      if (q.type === 'copy') return q.source || '';
       return L('hindab õpetaja', 'оценивает учитель');
     },
 
@@ -171,9 +190,13 @@
       if (r.manual) f[L('Õpetaja hinnata', 'Проверить учителю')] = r.manual + L(' punkti', ' балл.');
       w.questions.forEach((raw, i) => {
         const q = Core.q(raw);
-        const ok = r.per[i].ok;
-        const mark = ok === null ? '✎' : ok ? '✓' : '✗';
-        f[(i + 1) + '. ' + q.q] = mark + ' ' + Core.answerText(q, entry.answers[i]) + (ok === false ? ' (' + L('õige: ', 'верно: ') + Core.rightText(q) + ')' : '');
+        const p = r.per[i];
+        const mark = p.ok === null ? '✎' : p.ok ? '✓' : p.earned > 0 ? '½' : '✗';
+        let line = mark + ' ' + Core.answerText(q, entry.answers[i]);
+        if (p.typo) line += ' (' + L('väike trükiviga, loetud õigeks', 'небольшая опечатка, засчитано') + ')';
+        if (q.type === 'copy') line += ' (' + L('kattuvus ', 'совпадение ') + Math.round((p.score || 0) * 100) + '%, ' + p.earned + '/' + p.pts + ')';
+        else if (p.ok === false) line += ' (' + L('õige: ', 'верно: ') + Core.rightText(q) + ')';
+        f[(i + 1) + '. ' + q.q] = line;
       });
       const text = Object.keys(f).map((k) => k + ': ' + f[k]).join('\n');
       return { fields: f, text };
