@@ -145,48 +145,48 @@
       return { el };
     },
 
-    // ───────── Töö koostamine / muutmine ─────────
+    // ───────── Testi koostamine (liivakast) ─────────
     async edit(id) {
       const u = Core.user() || {};
       const existing = id ? await loadWork(id) : null;
       if (id && !existing) return { el: h(`<div class="page"><p>${L('Tööd ei leitud.', 'Работа не найдена.')}</p></div>`) };
-      const w = existing ? JSON.parse(JSON.stringify(existing)) : {
-        id: Core.newId(), title: '', subject: L('Informaatika', 'Информатика'), klass: '', minutes: 20, instructions: '',
-        teacher: { name: u.name || '', email: u.email || '' }, showAnswers: true, allowTypos: true, description: '', created: Date.now(), questions: []
+      const w = existing ? Core.unsealWork(existing) : {
+        id: Core.newId(), title: '', subject: L('Informaatika', 'Информатика'), klass: '', minutes: 20, instructions: '', description: '',
+        teacher: { name: u.name || '', email: u.email || '' }, showAnswers: false, allowTypos: true, shuffleOptions: true, shuffleQuestions: false,
+        created: Date.now(), questions: []
       };
+      if (w.shuffleOptions === undefined) w.shuffleOptions = true;
 
       const el = h(`
         <div class="page">
           ${back('#/', L('Töölaud', 'Главная'))}
           <div class="page-head">
-            <h1>${existing ? L('Muuda tööd', 'Изменить работу') : L('Koosta uus töö', 'Новая работа')}</h1>
-            <p class="muted">${L('Täida põhiandmed, lisa küsimused ja salvesta. Siis saad töö õpilastega jagada.', 'Заполните данные, добавьте вопросы и сохраните. Потом работой можно поделиться.')}</p>
+            <h1>${existing ? L('Muuda testi', 'Изменить тест') + (w.code ? ' ' + esc(w.code) : '') : L('Koosta uus test', 'Новый тест')}</h1>
+            <p class="muted">${L('Nagu liivakast: vajuta «+», et lisada küsimus ükskõik kuhu, lohista ⠿ abil teise kohta, lisa pilte ja ülesandeid ülesande sisse.', 'Как песочница: нажми «+», чтобы добавить вопрос куда угодно, перетаскивай за ⠿, добавляй картинки и задания внутри задания.')}</p>
           </div>
           <section class="card">
             <h2>1. ${L('Põhiandmed', 'Основное')}</h2>
             <div class="form-grid">
               <label class="field-row form-grid__wide"><span class="label">${L('Pealkiri', 'Название')} *</span><input class="input" data-w="title" maxlength="90" placeholder="${L('nt Arvuti osad', 'напр. Части компьютера')}"></label>
+              <label class="field-row form-grid__wide"><span class="label">${L('Kirjeldus (näha testide nimekirjas)', 'Описание (видно в списке тестов)')}</span><input class="input" data-w="description" maxlength="160"></label>
               <label class="field-row"><span class="label">${L('Aine', 'Предмет')}</span><input class="input" data-w="subject" maxlength="40"></label>
               <label class="field-row"><span class="label">${L('Klass', 'Класс')}</span><input class="input" data-w="klass" maxlength="10" placeholder="6A"></label>
               <label class="field-row"><span class="label">${L('Aeg minutites (0 = piiramatu)', 'Время в минутах (0 = без ограничения)')}</span><input class="input" data-w="minutes" type="number" min="0" max="180"></label>
-              <label class="field-row form-grid__wide"><span class="label">${L('Kirjeldus (näha testide nimekirjas)', 'Описание (видно в списке тестов)')}</span><input class="input" data-w="description" maxlength="160" placeholder="${L('nt Arvuti osad ja nende ülesanded', 'напр. Части компьютера и их задачи')}"></label>
               <label class="field-row form-grid__wide"><span class="label">${L('Juhend õpilastele', 'Инструкция ученикам')}</span><textarea class="input" data-w="instructions" rows="2" maxlength="400"></textarea></label>
               <label class="field-row form-grid__wide"><span class="label">${L('Tulemused saata e-postile', 'Результаты отправлять на e-mail')}</span><input class="input" data-w="email" type="email" maxlength="80" placeholder="opetaja@kool.ee">
-                <span class="muted small">${L('Kui jätad tühjaks, saadavad õpilased tulemuse Stuudiumis (kopeerivad teksti).', 'Если оставить пустым, ученики пришлют результат в Stuudium (скопируют текст).')}</span></label>
+                <span class="muted small">${L('Kui jätad tühjaks, saadavad õpilased vastused Stuudiumis.', 'Если оставить пустым, ученики пришлют ответы в Stuudium.')}</span></label>
               <label class="check-row form-grid__wide"><input type="checkbox" data-w="allowTypos"> ${L('Paranda väikesed trükivead (nt «klaviatuuur» = «klaviatuur»)', 'Исправлять мелкие опечатки (напр. «процесор» = «процессор»)')}</label>
-              <label class="check-row form-grid__wide"><input type="checkbox" data-w="showAnswers"> ${L('Näita õpilasele pärast esitamist õigeid vastuseid', 'Показывать ученику правильные ответы после сдачи')}</label>
+              <label class="check-row form-grid__wide"><input type="checkbox" data-w="shuffleOptions"> ${L('Sega vastusevariandid (igal õpilasel erinev järjekord — raskem maha kirjutada)', 'Перемешивать варианты ответа (у каждого ученика свой порядок — труднее списать)')}</label>
+              <label class="check-row form-grid__wide"><input type="checkbox" data-w="shuffleQuestions"> ${L('Sega küsimuste järjekord', 'Перемешивать порядок вопросов')}</label>
             </div>
           </section>
 
           <section class="card">
             <div class="row row--between card-head">
-              <h2>2. ${L('Küsimused', 'Вопросы')} <span class="badge" data-qcount></span></h2>
-              <div class="row row--tight">
-                <button class="btn" type="button" data-addq>${icon('pencil')} ${L('Lisa küsimus', 'Добавить вопрос')}</button>
-                <button class="btn btn--ghost" type="button" data-bank>${icon('book')} ${L('Küsimuste pangast', 'Из банка вопросов')}</button>
-              </div>
+              <h2>2. ${L('Küsimused ja ülesanded', 'Вопросы и задания')} <span class="badge" data-qcount></span></h2>
+              <button class="btn btn--ghost" type="button" data-bank>${icon('book')} ${L('Küsimuste pangast', 'Из банка вопросов')}</button>
             </div>
-            <div data-qs></div>
+            <div class="sandbox" data-qs></div>
           </section>
 
           <div class="card save-bar">
@@ -198,186 +198,314 @@
           </div>
         </div>`);
 
-      // põhiandmed
+      // ── põhiandmed ──
       const wf = (k) => el.querySelector(`[data-w="${k}"]`);
-      wf('title').value = w.title; wf('subject').value = w.subject || ''; wf('klass').value = w.klass || '';
-      wf('minutes').value = w.minutes || 0; wf('instructions').value = w.instructions || '';
-      wf('email').value = (w.teacher && w.teacher.email) || ''; wf('showAnswers').checked = w.showAnswers !== false;
-      wf('description').value = w.description || ''; wf('allowTypos').checked = w.allowTypos !== false;
-      el.querySelectorAll('[data-w]').forEach((inp) => inp.addEventListener('input', () => {
-        const k = inp.dataset.w;
-        if (k === 'minutes') w.minutes = Math.max(0, Math.min(180, Number(inp.value) || 0));
-        else if (k === 'email') w.teacher.email = inp.value.trim();
-        else if (k === 'showAnswers') w.showAnswers = inp.checked;
-        else if (k === 'allowTypos') w.allowTypos = inp.checked;
-        else w[k] = inp.value;
-      }));
-      wf('showAnswers').addEventListener('change', () => { w.showAnswers = wf('showAnswers').checked; });
-      wf('allowTypos').addEventListener('change', () => { w.allowTypos = wf('allowTypos').checked; });
+      ['title', 'description', 'subject', 'klass', 'instructions'].forEach((k) => { wf(k).value = w[k] || ''; });
+      wf('minutes').value = w.minutes || 0;
+      wf('email').value = (w.teacher && w.teacher.email) || '';
+      ['allowTypos', 'shuffleOptions'].forEach((k) => { wf(k).checked = w[k] !== false; });
+      wf('shuffleQuestions').checked = Boolean(w.shuffleQuestions);
+      el.querySelectorAll('[data-w]').forEach((inp) => {
+        const upd = () => {
+          const k = inp.dataset.w;
+          if (k === 'minutes') w.minutes = Math.max(0, Math.min(180, Number(inp.value) || 0));
+          else if (k === 'email') w.teacher.email = inp.value.trim();
+          else if (inp.type === 'checkbox') w[k] = inp.checked;
+          else w[k] = inp.value;
+        };
+        inp.addEventListener('input', upd);
+        inp.addEventListener('change', upd);
+      });
 
-      const qsBox = el.querySelector('[data-qs]');
+      const box = el.querySelector('[data-qs]');
+
+      // ── andmed: tee "3" või "3.1" (ülesande sees) ──
+      const listOf = (path) => {
+        const p = String(path).split('.').map(Number);
+        return p.length === 1 ? { list: w.questions, i: p[0] } : { list: w.questions[p[0]].items, i: p[1] };
+      };
+      const get = (path) => { const { list, i } = listOf(path); return list[i]; };
 
       function blank(type) {
         if (type === 'single' || type === 'multi') return { type, q: '', a: ['', ''], right: type === 'multi' ? [] : 0, points: 1 };
         if (type === 'short') return { type, q: '', answers: [], points: 1 };
         if (type === 'text') return { type, q: '', minWords: 20, points: 2 };
         if (type === 'copy') return { type, q: L('Kirjuta tekst', 'Напиши текст'), source: '', mode: 'copy', points: 5 };
+        if (type === 'group') return { type, q: '', items: [blank('single')] };
         return { type: 'voice', q: '', minSec: 15, points: 2 };
       }
-      // panga küsimus → oma küsimus (saab muuta)
-      function unbank(k) {
-        const q = Core.q(w.questions[k]);
-        const c = { type: q.type, q: q.q, points: w.questions[k].points || 1 };
-        if (q.a) c.a = q.a.slice();
+      function unbank(path) {
+        const raw = get(path);
+        const q = Core.q(raw);
+        const c = { type: q.type, q: q.q, points: raw.points || 1, image: raw.image, cols: raw.cols };
+        ['a', 'answers'].forEach((k) => { if (q[k]) c[k] = q[k].slice(); });
         if (q.right != null) c.right = Array.isArray(q.right) ? q.right.slice() : q.right;
-        if (q.answers) c.answers = q.answers.slice();
         if (q.minWords) c.minWords = q.minWords;
         if (q.minSec) c.minSec = q.minSec;
-        if (q.source) { c.source = q.source; c.mode = q.mode; }
-        w.questions[k] = c;
+        const { list, i } = listOf(path);
+        list[i] = c;
       }
 
-      function drawQs() {
-        el.querySelector('[data-qcount]').textContent = w.questions.length;
-        if (!w.questions.length) {
-          qsBox.innerHTML = `<div class="empty empty--inline"><p class="muted">${L('Küsimusi veel pole. Lisa küsimus või vali pangast.', 'Вопросов пока нет. Добавьте вопрос или выберите из банка.')}</p></div>`;
+      const typeNames = () => TYPES().concat([['group', L('Ülesanne (mitu küsimust sees)', 'Задание (несколько вопросов внутри)')]]);
+
+      // «+» koht: avab tüüpide valiku
+      function insertZone(listPath, index, inGroup) {
+        const z = h(`<div class="ins" data-ins="${listPath}" data-at="${index}">
+          <button type="button" class="ins__btn" aria-label="${L('Lisa siia', 'Добавить сюда')}">+ <span>${L('Lisa siia', 'Добавить сюда')}</span></button>
+          <div class="ins__menu" hidden>${typeNames().filter((t) => !(inGroup && t[0] === 'group')).map(([v, t]) => `<button type="button" class="btn btn--ghost btn--sm" data-add="${v}">${t}</button>`).join('')}
+            <button type="button" class="btn btn--ghost btn--sm" data-add="bank">${icon('book')} ${L('Pangast', 'Из банка')}</button></div>
+        </div>`);
+        return z;
+      }
+
+      function imageRow(q, path) {
+        const wrap = h('<div class="q-img"></div>');
+        if (q.image) {
+          wrap.appendChild(Images.view(q.image, { query: q.q, onPick: (u) => { get(path).image = u || undefined; if (!u) delete get(path).image; draw(); } }));
+        } else {
+          const b = h(`<button type="button" class="btn btn--ghost btn--sm" data-act="img">${icon('monitor')} ${L('Lisa pilt', 'Добавить картинку')}</button>`);
+          wrap.appendChild(b);
+        }
+        return wrap;
+      }
+
+      function card(raw, path, num, inGroup) {
+        const q = raw.bank ? Core.q(raw) : raw;
+        const isGroup = raw.type === 'group';
+        const c = h(`
+          <div class="qcard ${isGroup ? 'qcard--group' : ''}" data-path="${path}" draggable="false">
+            <div class="qcard__head">
+              <span class="qcard__drag" draggable="true" title="${L('Lohista teise kohta', 'Перетащи в другое место')}" aria-label="${L('Lohista', 'Перетащить')}">⠿</span>
+              <b class="qcard__n">${num}.</b>
+              <select class="input qcard__type" data-f="type" aria-label="${L('Tüüp', 'Тип')}">${typeNames().filter((t) => !(inGroup && t[0] === 'group')).map(([v, t]) => `<option value="${v}" ${v === q.type ? 'selected' : ''}>${t}</option>`).join('')}</select>
+              ${isGroup ? '' : `<label class="qcard__pts"><input class="input" type="number" min="0" max="50" data-f="points" value="${raw.points != null ? raw.points : 1}" aria-label="${L('Punktid', 'Баллы')}"> ${L('p', 'б.')}</label>`}
+              <span class="qcard__tools">
+                <button class="btn btn--ghost btn--sm" type="button" data-act="dup" title="${L('Tee koopia', 'Копия')}">⧉</button>
+                <button class="btn btn--ghost btn--sm btn--danger" type="button" data-act="del" title="${L('Kustuta', 'Удалить')}">✕</button>
+              </span>
+            </div>
+            <div data-body></div>
+          </div>`);
+        const body = c.querySelector('[data-body]');
+
+        if (raw.bank) {
+          body.innerHTML = `
+            <p class="muted small">${icon('book')} ${L('Küsimuste pangast', 'Из банка вопросов')} #${raw.bank}</p>
+            <p><b>${esc(q.q)}</b></p>
+            ${q.a ? `<ul class="plain">${q.a.map((x, j) => `<li>${(Array.isArray(q.right) ? q.right.includes(j) : q.right === j) ? '✓ ' : ''}${esc(x)}</li>`).join('')}</ul>` : ''}
+            <button class="btn btn--ghost btn--sm" type="button" data-act="unbank">${L('Muuda teksti', 'Изменить текст')}</button>`;
+          body.appendChild(imageRow(raw, path));
+          return c;
+        }
+
+        body.appendChild(h(`<textarea class="input" rows="2" data-f="q" placeholder="${isGroup ? L('Ülesande tekst (nt lugu või juhend), küsimused tulevad allpool', 'Текст задания (рассказ или инструкция), вопросы — ниже') : L('Küsimuse tekst', 'Текст вопроса')}">${esc(q.q || '')}</textarea>`));
+        body.appendChild(imageRow(raw, path));
+
+        if (isGroup) {
+          const inner = h(`<div class="qgroup"><p class="label small">${L('Küsimused selle ülesande sees', 'Вопросы внутри этого задания')}</p></div>`);
+          (raw.items || []).forEach((it, s) => {
+            inner.appendChild(insertZone(path, s, true));
+            inner.appendChild(card(it, path + '.' + s, num + '.' + (s + 1), true));
+          });
+          inner.appendChild(insertZone(path, (raw.items || []).length, true));
+          body.appendChild(inner);
+          return c;
+        }
+
+        if (q.type === 'single' || q.type === 'multi') {
+          const opts = h(`<div class="qopts"><div class="row row--between row--tight"><p class="muted small">${L('Märgi õige vastus', 'Отметьте правильный ответ')}${q.type === 'multi' ? L(' (võib mitu)', ' (можно несколько)') : ''}</p>
+            <select class="input input--sm" data-f="cols" aria-label="${L('Veerud', 'Колонки')}">
+              ${[1, 2, 3].map((n) => `<option value="${n}" ${Number(q.cols || 1) === n ? 'selected' : ''}>${n} ${L(n === 1 ? 'veerg' : 'veergu', n === 1 ? 'колонка' : 'колонки')}</option>`).join('')}
+            </select></div></div>`);
+          q.a.forEach((txt, j) => {
+            const isRight = q.type === 'multi' ? (q.right || []).includes(j) : q.right === j;
+            opts.appendChild(h(`
+              <div class="qopt">
+                <input type="${q.type === 'multi' ? 'checkbox' : 'radio'}" name="right-${path}" data-right="${j}" ${isRight ? 'checked' : ''} aria-label="${L('Õige', 'Правильный')}">
+                <input class="input" data-opt="${j}" value="${esc(txt)}" placeholder="${L('Variant', 'Вариант')} ${j + 1}">
+                <button class="btn btn--ghost btn--sm" type="button" data-delopt="${j}" ${q.a.length <= 2 ? 'disabled' : ''} aria-label="${L('Eemalda', 'Убрать')}">✕</button>
+              </div>`));
+          });
+          opts.appendChild(h(`<button class="btn btn--ghost btn--sm" type="button" data-act="addopt">+ ${L('Lisa variant', 'Добавить вариант')}</button>`));
+          body.appendChild(opts);
+        } else if (q.type === 'short') {
+          body.appendChild(h(`<label class="field-row"><span class="label small">${L('Õiged vastused (komaga eraldatud)', 'Правильные ответы (через запятую)')}</span><input class="input" data-f="answers" value="${esc((q.answers || []).join(', '))}" placeholder="8, kaheksa"></label>`));
+        } else if (q.type === 'text') {
+          body.appendChild(h(`<label class="field-row field-row--short"><span class="label small">${L('Soovituslik sõnade arv', 'Желательное число слов')}</span><input class="input" type="number" min="0" max="500" data-f="minWords" value="${q.minWords || 0}"></label>`));
+        } else if (q.type === 'copy') {
+          body.appendChild(h(`<div class="qopts">
+            <label class="field-row"><span class="label small">${L('Kuidas õpilane kirjutab?', 'Как ученик пишет?')}</span>
+              <select class="input" data-f="mode">
+                <option value="copy" ${q.mode !== 'dictation' ? 'selected' : ''}>${L('Kirjutab ümber (tekst on ekraanil)', 'Переписывает (текст на экране)')}</option>
+                <option value="dictation" ${q.mode === 'dictation' ? 'selected' : ''}>${L('Etteütlus (õpetaja loeb ette)', 'Диктант (учитель читает)')}</option>
+              </select></label>
+            <label class="field-row"><span class="label small">${L('Õige tekst', 'Правильный текст')}</span><textarea class="input" rows="3" data-f="source">${esc(q.source || '')}</textarea></label>
+          </div>`));
+        } else {
+          body.appendChild(h(`<label class="field-row field-row--short"><span class="label small">${L('Vähemalt sekundeid', 'Минимум секунд')}</span><input class="input" type="number" min="0" max="180" data-f="minSec" value="${q.minSec || 0}"></label>`));
+        }
+        return c;
+      }
+
+      function draw() {
+        const leaves = Core.leaves(w).length;
+        el.querySelector('[data-qcount]').textContent = w.questions.length + ' · ' + leaves + ' ' + L('vastust', 'ответов');
+        box.innerHTML = '';
+        w.questions.forEach((raw, t) => {
+          box.appendChild(insertZone('', t, false));
+          box.appendChild(card(raw, String(t), String(t + 1), false));
+        });
+        box.appendChild(insertZone('', w.questions.length, false));
+        if (!w.questions.length) box.insertAdjacentHTML('afterbegin', `<p class="muted sandbox__empty">${L('Test on tühi. Vajuta «+ Lisa siia» ja vali küsimuse tüüp.', 'Тест пустой. Нажми «+ Добавить сюда» и выбери тип вопроса.')}</p>`);
+      }
+
+      function insertAt(listPath, at, items) {
+        const list = listPath === '' ? w.questions : get(listPath).items;
+        list.splice(at, 0, ...items);
+        draw();
+      }
+
+      // ── sündmused (üks kuulaja kõigile kaartidele) ──
+      box.addEventListener('input', (ev) => {
+        const t = ev.target;
+        const cEl = t.closest('[data-path]');
+        if (!cEl) return;
+        const cur = get(cEl.dataset.path);
+        if (t.dataset.f === 'points') cur.points = Math.max(0, Number(t.value) || 0);
+        else if (t.dataset.f === 'q') cur.q = t.value;
+        else if (t.dataset.f === 'answers') cur.answers = t.value.split(',').map((s) => s.trim()).filter(Boolean);
+        else if (t.dataset.f === 'minWords') cur.minWords = Number(t.value) || 0;
+        else if (t.dataset.f === 'minSec') cur.minSec = Number(t.value) || 0;
+        else if (t.dataset.f === 'source') cur.source = t.value;
+        else if (t.dataset.opt != null) cur.a[Number(t.dataset.opt)] = t.value;
+      });
+      box.addEventListener('change', (ev) => {
+        const t = ev.target;
+        const cEl = t.closest('[data-path]');
+        if (!cEl) return;
+        const path = cEl.dataset.path;
+        const cur = get(path);
+        if (t.dataset.f === 'type') {
+          if (cur.bank) unbank(path);
+          const old = get(path);
+          const n = blank(t.value);
+          if (old.q) n.q = old.q;
+          if (old.image) n.image = old.image;
+          if (old.points != null && old.points !== 1 && n.points != null) n.points = old.points;
+          if ((n.type === 'single' || n.type === 'multi') && old.a) n.a = old.a.slice();
+          const { list, i } = listOf(path);
+          list[i] = n;
+          draw();
+        } else if (t.dataset.f === 'mode') cur.mode = t.value;
+        else if (t.dataset.f === 'cols') { cur.cols = Number(t.value); }
+        else if (t.dataset.right != null) {
+          const j = Number(t.dataset.right);
+          if (cur.type === 'multi') {
+            const s = new Set(cur.right || []);
+            t.checked ? s.add(j) : s.delete(j);
+            cur.right = Array.from(s).sort();
+          } else cur.right = j;
+        }
+      });
+      box.addEventListener('click', (ev) => {
+        const b = ev.target.closest('button');
+        if (!b) return;
+        // «+» kohad
+        const z = b.closest('[data-ins]');
+        if (z) {
+          if (b.classList.contains('ins__btn')) {
+            const m = z.querySelector('.ins__menu');
+            box.querySelectorAll('.ins__menu').forEach((x) => { if (x !== m) x.hidden = true; });
+            m.hidden = !m.hidden;
+            return;
+          }
+          if (b.dataset.add) {
+            const at = Number(z.dataset.at);
+            const lp = z.dataset.ins;
+            if (b.dataset.add === 'bank') bankPicker((ids) => insertAt(lp, at, ids.map((bid) => ({ bank: bid, points: 1 }))));
+            else insertAt(lp, at, [blank(b.dataset.add)]);
+            const last = box.querySelector(`[data-path="${lp === '' ? at : lp + '.' + at}"] textarea`);
+            if (last) last.focus();
+          }
           return;
         }
-        qsBox.innerHTML = '';
-        w.questions.forEach((raw, k) => {
-          const q = raw.bank ? Core.q(raw) : raw;
-          const card = h(`
-            <div class="qcard">
-              <div class="qcard__head">
-                <b class="qcard__n">${k + 1}.</b>
-                <select class="input qcard__type" data-f="type" aria-label="${L('Küsimuse tüüp', 'Тип вопроса')}">${TYPES().map(([v, t]) => `<option value="${v}" ${v === q.type ? 'selected' : ''}>${t}</option>`).join('')}</select>
-                <label class="qcard__pts"><input class="input" type="number" min="0" max="20" data-f="points" value="${raw.points != null ? raw.points : 1}" aria-label="${L('Punktid', 'Баллы')}"> ${L('p', 'б.')}</label>
-                <span class="qcard__tools">
-                  <button class="btn btn--ghost btn--sm" type="button" data-act="up" ${k === 0 ? 'disabled' : ''} aria-label="${L('Üles', 'Вверх')}">↑</button>
-                  <button class="btn btn--ghost btn--sm" type="button" data-act="down" ${k === w.questions.length - 1 ? 'disabled' : ''} aria-label="${L('Alla', 'Вниз')}">↓</button>
-                  <button class="btn btn--ghost btn--sm btn--danger" type="button" data-act="del" aria-label="${L('Kustuta', 'Удалить')}">✕</button>
-                </span>
-              </div>
-              <div data-body></div>
-            </div>`);
-          const body = card.querySelector('[data-body]');
-          if (raw.bank) {
-            body.innerHTML = `
-              <p class="muted small">${icon('book')} ${L('Küsimuste pangast', 'Из банка вопросов')} #${raw.bank} · ${L('õpilane näeb seda oma keeles', 'ученик видит его на своём языке')}</p>
-              <p><b>${esc(q.q)}</b></p>
-              ${q.a ? `<ul class="plain">${q.a.map((x, j) => `<li>${(Array.isArray(q.right) ? q.right.includes(j) : q.right === j) ? '✓ ' : ''}${esc(x)}</li>`).join('')}</ul>` : ''}
-              ${q.answers ? `<p class="muted small">${L('Õiged vastused', 'Правильные ответы')}: ${esc(q.answers.join(', '))}</p>` : ''}
-              <button class="btn btn--ghost btn--sm" type="button" data-act="unbank">${L('Muuda teksti', 'Изменить текст')}</button>`;
-          } else {
-            body.innerHTML = `<textarea class="input" rows="2" data-f="q" placeholder="${L('Küsimuse tekst', 'Текст вопроса')}" aria-label="${L('Küsimuse tekst', 'Текст вопроса')}">${esc(q.q || '')}</textarea>`;
-            if (q.type === 'single' || q.type === 'multi') {
-              const opts = h(`<div class="qopts"><p class="muted small">${L('Märgi õige vastus', 'Отметьте правильный ответ')}${q.type === 'multi' ? L(' (võib mitu)', ' (можно несколько)') : ''}:</p></div>`);
-              q.a.forEach((txt, j) => {
-                const isRight = q.type === 'multi' ? (q.right || []).includes(j) : q.right === j;
-                opts.appendChild(h(`
-                  <div class="qopt">
-                    <input type="${q.type === 'multi' ? 'checkbox' : 'radio'}" name="right-${k}" data-right="${j}" ${isRight ? 'checked' : ''} aria-label="${L('Õige', 'Правильный')}">
-                    <input class="input" data-opt="${j}" value="${esc(txt)}" placeholder="${L('Variant', 'Вариант')} ${j + 1}">
-                    <button class="btn btn--ghost btn--sm" type="button" data-delopt="${j}" ${q.a.length <= 2 ? 'disabled' : ''} aria-label="${L('Eemalda', 'Убрать')}">✕</button>
-                  </div>`));
-              });
-              opts.appendChild(h(`<button class="btn btn--ghost btn--sm" type="button" data-addopt>+ ${L('Lisa variant', 'Добавить вариант')}</button>`));
-              body.appendChild(opts);
-            } else if (q.type === 'short') {
-              body.appendChild(h(`<label class="field-row"><span class="label small">${L('Õiged vastused (komaga eraldatud)', 'Правильные ответы (через запятую)')}</span><input class="input" data-f="answers" value="${esc((q.answers || []).join(', '))}" placeholder="8, kaheksa"></label>`));
-            } else if (q.type === 'copy') {
-              body.appendChild(h(`<div class="qopts">
-                <label class="field-row"><span class="label small">${L('Kuidas õpilane kirjutab?', 'Как ученик пишет?')}</span>
-                  <select class="input" data-f="mode">
-                    <option value="copy" ${q.mode !== 'dictation' ? 'selected' : ''}>${L('Kirjutab ümber (tekst on ekraanil)', 'Переписывает (текст на экране)')}</option>
-                    <option value="dictation" ${q.mode === 'dictation' ? 'selected' : ''}>${L('Etteütlus (õpetaja loeb ette, teksti ei näe)', 'Диктант (учитель читает, текста не видно)')}</option>
-                  </select></label>
-                <label class="field-row"><span class="label small">${L('Õige tekst (selle järgi kontrollitakse)', 'Правильный текст (по нему проверяется)')}</span>
-                  <textarea class="input" rows="3" data-f="source" placeholder="${L('Kass istub aknal ja vaatab lund.', 'Кот сидит на окне и смотрит на снег.')}">${esc(q.source || '')}</textarea></label>
-                <p class="muted small">${L('Punktid antakse kattuvuse järgi: 90% sarnane tekst = 90% punktidest. Väike trükiviga sõnas on pool viga.', 'Баллы по совпадению: текст совпал на 90% = 90% баллов. Мелкая опечатка в слове — половина ошибки.')}</p>
-              </div>`));
-            } else if (q.type === 'text') {
-              body.appendChild(h(`<label class="field-row field-row--short"><span class="label small">${L('Soovituslik sõnade arv', 'Желательное число слов')}</span><input class="input" type="number" min="0" max="500" data-f="minWords" value="${q.minWords || 0}"></label>`));
-            } else {
-              body.appendChild(h(`<label class="field-row field-row--short"><span class="label small">${L('Vähemalt sekundeid', 'Минимум секунд')}</span><input class="input" type="number" min="0" max="180" data-f="minSec" value="${q.minSec || 0}"></label>`));
-            }
-          }
-
-          // sündmused
-          card.addEventListener('input', (ev) => {
-            const t = ev.target;
-            const cur = w.questions[k];
-            if (t.dataset.f === 'points') cur.points = Math.max(0, Number(t.value) || 0);
-            else if (t.dataset.f === 'q') cur.q = t.value;
-            else if (t.dataset.f === 'answers') cur.answers = t.value.split(',').map((s) => s.trim()).filter(Boolean);
-            else if (t.dataset.f === 'minWords') cur.minWords = Number(t.value) || 0;
-            else if (t.dataset.f === 'minSec') cur.minSec = Number(t.value) || 0;
-            else if (t.dataset.f === 'source') cur.source = t.value;
-            else if (t.dataset.opt != null) cur.a[Number(t.dataset.opt)] = t.value;
-          });
-          card.addEventListener('change', (ev) => {
-            const t = ev.target;
-            const cur = w.questions[k];
-            if (t.dataset.f === 'type') {
-              if (cur.bank) unbank(k);
-              const old = w.questions[k];
-              const n = blank(t.value);
-              n.q = old.q || n.q;
-              n.points = old.points;
-              if ((n.type === 'single' || n.type === 'multi') && old.a) n.a = old.a.slice();
-              w.questions[k] = n;
-              drawQs();
-            } else if (t.dataset.f === 'mode') {
-              cur.mode = t.value;
-            } else if (t.dataset.right != null) {
-              const j = Number(t.dataset.right);
-              if (cur.type === 'multi') {
-                const s = new Set(cur.right || []);
-                t.checked ? s.add(j) : s.delete(j);
-                cur.right = Array.from(s).sort();
-              } else cur.right = j;
-            }
-          });
-          card.addEventListener('click', (ev) => {
-            const b = ev.target.closest('button');
-            if (!b) return;
-            const cur = w.questions[k];
-            if (b.dataset.act === 'del') { w.questions.splice(k, 1); drawQs(); }
-            else if (b.dataset.act === 'up') { [w.questions[k - 1], w.questions[k]] = [w.questions[k], w.questions[k - 1]]; drawQs(); }
-            else if (b.dataset.act === 'down') { [w.questions[k + 1], w.questions[k]] = [w.questions[k], w.questions[k + 1]]; drawQs(); }
-            else if (b.dataset.act === 'unbank') { unbank(k); drawQs(); }
-            else if (b.dataset.addopt != null) { cur.a.push(''); drawQs(); }
-            else if (b.dataset.delopt != null) {
-              const j = Number(b.dataset.delopt);
-              cur.a.splice(j, 1);
-              if (cur.type === 'multi') cur.right = (cur.right || []).filter((x) => x !== j).map((x) => (x > j ? x - 1 : x));
-              else if (cur.right === j) cur.right = 0; else if (cur.right > j) cur.right--;
-              drawQs();
-            }
-          });
-          qsBox.appendChild(card);
-        });
-      }
-
-      el.querySelector('[data-addq]').addEventListener('click', () => {
-        w.questions.push(blank('single'));
-        drawQs();
-        const last = qsBox.lastElementChild;
-        if (last) { last.scrollIntoView({ block: 'center' }); const t = last.querySelector('textarea'); if (t) t.focus(); }
+        const cEl = b.closest('[data-path]');
+        if (!cEl) return;
+        const path = cEl.dataset.path;
+        const cur = get(path);
+        const { list, i } = listOf(path);
+        if (b.dataset.act === 'del') {
+          if (cur.type === 'group' && (cur.items || []).length && !confirm(L('Kustutada ülesanne koos küsimustega?', 'Удалить задание вместе с вопросами?'))) return;
+          list.splice(i, 1); draw();
+        } else if (b.dataset.act === 'dup') { list.splice(i + 1, 0, JSON.parse(JSON.stringify(cur))); draw(); }
+        else if (b.dataset.act === 'unbank') { unbank(path); draw(); }
+        else if (b.dataset.act === 'addopt') { cur.a.push(''); draw(); }
+        else if (b.dataset.act === 'img') { Images.pick(cur.q || '', (u) => { if (u) { get(path).image = u; draw(); } }); }
+        else if (b.dataset.delopt != null) {
+          const j = Number(b.dataset.delopt);
+          cur.a.splice(j, 1);
+          if (cur.type === 'multi') cur.right = (cur.right || []).filter((x) => x !== j).map((x) => (x > j ? x - 1 : x));
+          else if (cur.right === j) cur.right = 0; else if (cur.right > j) cur.right--;
+          draw();
+        }
       });
-      el.querySelector('[data-bank]').addEventListener('click', () => bankPicker((ids) => {
-        ids.forEach((bid) => w.questions.push({ bank: bid, points: 1 }));
-        drawQs();
-      }));
 
+      // ── lohistamine ⠿ ──
+      let dragPath = null;
+      box.addEventListener('dragstart', (ev) => {
+        const hnd = ev.target.closest('.qcard__drag');
+        if (!hnd) return;
+        const cEl = hnd.closest('[data-path]');
+        dragPath = cEl.dataset.path;
+        cEl.classList.add('is-dragging');
+        ev.dataTransfer.effectAllowed = 'move';
+        ev.dataTransfer.setData('text/plain', dragPath);
+      });
+      box.addEventListener('dragend', () => { dragPath = null; box.querySelectorAll('.is-dragging, .is-target').forEach((x) => x.classList.remove('is-dragging', 'is-target')); });
+      const zoneOk = (z) => {
+        if (!z || dragPath == null) return false;
+        const fromGroup = dragPath.includes('.');
+        const toGroup = z.dataset.ins !== '';
+        const isGroup = get(dragPath).type === 'group';
+        if (isGroup && toGroup) return false;               // ülesannet ei saa panna teise ülesande sisse
+        if (toGroup && z.dataset.ins === dragPath) return false;
+        return fromGroup || !toGroup || !isGroup;
+      };
+      box.addEventListener('dragover', (ev) => {
+        const z = ev.target.closest('[data-ins]');
+        if (!zoneOk(z)) return;
+        ev.preventDefault();
+        box.querySelectorAll('.is-target').forEach((x) => x.classList.remove('is-target'));
+        z.classList.add('is-target');
+      });
+      box.addEventListener('drop', (ev) => {
+        const z = ev.target.closest('[data-ins]');
+        if (!zoneOk(z)) return;
+        ev.preventDefault();
+        const from = listOf(dragPath);
+        const item = from.list[from.i];
+        const toList = z.dataset.ins === '' ? w.questions : get(z.dataset.ins).items;
+        let at = Number(z.dataset.at);
+        from.list.splice(from.i, 1);
+        if (toList === from.list && at > from.i) at--;
+        toList.splice(at, 0, item);
+        dragPath = null;
+        draw();
+      });
+
+      el.querySelector('[data-bank]').addEventListener('click', () => bankPicker((ids) => insertAt('', w.questions.length, ids.map((bid) => ({ bank: bid, points: 1 })))));
+
+      // ── salvestamine ──
       el.querySelector('[data-save]').addEventListener('click', async () => {
         const err = el.querySelector('[data-err]');
         const problems = [];
         if (!w.title.trim()) problems.push(L('Lisa pealkiri.', 'Добавьте название.'));
         if (!w.questions.length) problems.push(L('Lisa vähemalt üks küsimus.', 'Добавьте хотя бы один вопрос.'));
-        w.questions.forEach((q, k) => {
+        w.questions.forEach((g, t) => { if (g.type === 'group' && !(g.items || []).length) problems.push((t + 1) + '. ' + L('ülesandes pole küsimusi.', 'в задании нет вопросов.')); });
+        Core.leaves(w).forEach((lf) => {
+          const q = lf.raw;
           if (q.bank) return;
-          const n = k + 1 + '. ';
+          const n = lf.label + '. ';
           if (!String(q.q || '').trim()) problems.push(n + L('küsimuse tekst puudub.', 'нет текста вопроса.'));
           if (q.type === 'single' || q.type === 'multi') {
             q.a = q.a.map((s) => s.trim());
@@ -389,17 +517,20 @@
           if (q.type === 'copy' && !String(q.source || '').trim()) problems.push(n + L('lisa õige tekst.', 'добавьте правильный текст.'));
         });
         if (w.teacher.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(w.teacher.email)) problems.push(L('Kontrolli e-posti aadressi.', 'Проверьте e-mail.'));
+        const size = JSON.stringify(w).length;
+        if (size > 900000) problems.push(L('Arvutist lisatud pilte on liiga palju (test on liiga suur). Kasuta internetist otsitud pilte või vähem pilte.', 'Слишком много картинок с компьютера (тест слишком большой). Используй картинки из поиска или меньше картинок.'));
         if (problems.length) {
           err.hidden = false;
           err.innerHTML = problems.map(esc).join('<br>');
           err.scrollIntoView({ block: 'center' });
           return;
         }
+        err.hidden = true;
         w.teacher.name = (Core.user() || {}).name || w.teacher.name;
         const btn = el.querySelector('[data-save]');
         btn.disabled = true;
         try {
-          const saved = await DB.publish(w);
+          const saved = await DB.publish(Core.sealWork(w));
           UI.toast(L('Test salvestatud, kood ', 'Тест сохранён, код ') + saved.code);
           location.hash = '#/jaga/' + saved.id;
         } catch (e) {
@@ -409,7 +540,7 @@
         }
       });
 
-      drawQs();
+      draw();
       return { el };
     },
 
@@ -518,7 +649,7 @@
           ${works.length ? works.map((w) => `
             <details class="card key-card">
               <summary><b class="code-chip">${esc(w.code || '')}</b> <b>${esc(w.title)}</b> <span class="muted small">· ${w.questions.length} ${L('küsimust', 'вопр.')}</span></summary>
-              <ol class="keys">${w.questions.map((raw) => { const q = Core.q(raw); return `<li><span>${esc(q.q)}</span><b>${esc(Core.rightText(q))}</b></li>`; }).join('')}</ol>
+              <ol class="keys keys--plain">${Core.leaves(w).map((lf) => { const q = Core.q(lf.raw); return `<li><span><b>${lf.label}.</b> ${esc(q.q)}</span><b>${esc(Core.rightText(q))}</b></li>`; }).join('')}</ol>
             </details>`).join('') : `<p class="muted">${L('Töid veel pole.', 'Работ пока нет.')}</p>`}
         </div>`);
       return { el };

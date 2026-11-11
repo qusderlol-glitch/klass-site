@@ -41,12 +41,24 @@
     },
 
     async post(email, subject, fields, honey) {
+      // Красивое письмо: шаблон «box» (карточки) и значки у главных полей
+      const ICONS = [
+        [/^(Töö|Работа)$/, '📝'], [/^(Õpilane|Ученик)$/, '👤'], [/^(Klass|Класс)$/, '🏫'],
+        [/e-post|e-mail/i, '✉️'], [/^(Esitatud|Сдано)$/, '🕒'], [/^(Punktid|Баллы)/, '📊'],
+        [/^(Hinne|Оценка)/, '⭐'], [/^(Õpetaja hinnata|Проверить учителю)/, '✎'],
+        [/^(Lahkus testist|Уходил из теста)/, '🚪'], [/^\d+(\.\d+)?\. /, '❓']
+      ];
+      const pretty = {};
+      Object.keys(fields).forEach((k) => {
+        const hit = ICONS.find(([re]) => re.test(k));
+        pretty[hit ? hit[1] + ' ' + k : k] = fields[k];
+      });
       const body = Object.assign({
         _subject: subject,
-        _template: 'table',
+        _template: 'box',
         _captcha: 'false',
         _honey: honey || ''
-      }, fields);
+      }, pretty);
       // почтовый сервис иногда отвечает 20–30 секунд — ждём до минуты
       const ctrl = window.AbortController ? new AbortController() : null;
       const limit = setTimeout(() => ctrl && ctrl.abort(), 60000);

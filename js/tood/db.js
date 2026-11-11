@@ -27,7 +27,10 @@
     init() {
       if (ready) return ready;
       const cfg = window.CONFIG && CONFIG.FIREBASE;
-      if (!cfg || !cfg.projectId) { ready = Promise.resolve(false); return ready; }
+      // proovirežiim: localStorage 'klass-db-local' = '1' → ainult see brauser (päris andmebaasi ei puututa)
+      let localOnly = false;
+      try { localOnly = localStorage.getItem('klass-db-local') === '1'; } catch (e) { /* ei midagi */ }
+      if (!cfg || !cfg.projectId || localOnly) { ready = Promise.resolve(false); return ready; }
       ready = (async () => {
         try {
           await loadScript(SDK + 'firebase-app-compat.js');

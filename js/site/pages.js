@@ -546,7 +546,7 @@
         } else if (q.type === 'voice') {
           if (!recorders[i]) {
             const k = i;
-            recorders[k] = { rec: UI.recorder({ maxSec: 120, onRecorded(r) { answers[k] = r.seconds > 0 ? 'запись ' + r.seconds + ' сек' : null; markDot(); } }) };
+            recorders[k] = { rec: UI.recorder({ maxSec: 120, minSec: 5, onRecorded(r) { answers[k] = r.seconds > 0 && !r.short ? 'запись ' + r.seconds + ' сек' : null; markDot(); } }) };
           }
           area.appendChild(recorders[i].rec.el);
           area.appendChild(h('<p class="muted small">Этот вопрос не влияет на автоматическую оценку — его послушает и оценит учитель.</p>'));

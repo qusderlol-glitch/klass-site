@@ -237,3 +237,73 @@
 .submit-box__icon .ico { width: 32px; height: 32px; }
 .submit-box__dots { justify-content: center; margin: 4px 0 8px; }
 .submit-box__dots .dot { border-color: var(--bad); color: var(--bad); }
+
+/* ───── Test: kopeerimine keelatud, valmiduse ringid ───── */
+.no-copy .test__q, .no-copy .ans-block__q, .no-copy .task-intro, .no-copy .opt span, .no-copy .copy-src, .no-copy .eyebrow { user-select: none; -webkit-user-select: none; }
+.dots--rings .dot { border-radius: 50%; position: relative; border: 0; background: none; padding: 0; width: 40px; height: 40px; }
+.ring { --p: 0; background: conic-gradient(var(--ok) calc(var(--p) * 1%), var(--surface-2) 0) !important; box-shadow: inset 0 0 0 2px var(--line); }
+.ring span { position: absolute; inset: 5px; display: grid; place-items: center; border-radius: 50%; background: var(--surface); color: var(--text); font-weight: 700; }
+.ring--0 { --p: 0; }
+.ring--5 { --p: 50; }
+.ring--1 { --p: 100; }
+.ring--1 span { background: var(--ok-soft); color: var(--ok); }
+.ring.is-current span { background: var(--accent); color: var(--accent-text); }
+.ring.is-current { box-shadow: 0 0 0 3px var(--accent-soft), inset 0 0 0 2px var(--accent); }
+.exam__legend { margin: 12px 0 0; line-height: 1.9; }
+.ring-demo { display: inline-block; width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--line); }
+.ring-demo--0 { background: var(--surface-2); }
+.ring-demo--5 { background: conic-gradient(var(--ok) 50%, var(--surface-2) 0); }
+.ring-demo--1 { background: var(--ok); }
+
+.opts--cols-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.opts--cols-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ans-block { padding: 14px 0; border-top: 1px dashed var(--line); }
+.ans-block:first-of-type { border-top: 0; }
+.ans-block__q { margin: 0 0 10px; font-size: 1.08rem; }
+.task-intro { margin: 0 0 12px; padding: 14px 16px; white-space: pre-wrap; background: var(--surface-2); border-left: 4px solid var(--accent); border-radius: var(--radius-sm); font-size: 1.08rem; line-height: 1.6; }
+.done-card { text-align: center; }
+.done-card__icon { display: grid; place-items: center; width: 84px; height: 84px; margin: 6px auto 10px; border-radius: 50%; background: var(--ok-soft); color: var(--ok); animation: pop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.3) both; }
+.done-card__icon .ico { width: 44px; height: 44px; stroke-width: 2.5; }
+
+/* ───── Pildid ───── */
+.img-box { position: relative; margin: 8px 0 12px; max-width: 520px; border-radius: var(--radius-sm); overflow: hidden; }
+.img-box img { display: block; max-width: 100%; max-height: 360px; border-radius: var(--radius-sm); }
+.img-box--edit { cursor: pointer; }
+.img-box--edit:hover img { outline: 3px solid var(--accent); }
+.img-missing { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 150px; padding: 16px; text-align: center; color: var(--muted); background: var(--surface-2); border: 2px dashed var(--line); border-radius: var(--radius-sm); }
+.img-missing__face { font-size: 2.6rem; font-weight: 700; line-height: 1; transform: rotate(90deg); }
+.img-missing__hint { font-size: 0.85rem; color: var(--accent-ink); font-weight: 600; }
+.img-box--edit .img-missing:hover { border-color: var(--accent); }
+.q-img { margin: 8px 0; }
+.img-pick { width: min(820px, 100%); }
+.img-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; max-height: 340px; overflow: auto; }
+.img-grid__item { padding: 0; aspect-ratio: 4 / 3; overflow: hidden; background: var(--surface-2); border: 3px solid transparent; border-radius: var(--radius-sm); cursor: pointer; }
+.img-grid__item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.img-grid__item.is-on { border-color: var(--ok); box-shadow: 0 0 0 2px var(--ok-soft); }
+.img-drop { display: grid; place-items: center; min-height: 140px; padding: 16px; text-align: center; font-weight: 600; color: var(--accent-ink); background: var(--surface-2); border: 2px dashed var(--accent); border-radius: var(--radius-sm); cursor: pointer; }
+.img-preview .img-box { margin: 0 auto; }
+
+/* ───── Liivakast (testi koostamine) ───── */
+.sandbox__empty { text-align: center; }
+.ins { position: relative; margin: 2px 0; }
+.ins__btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 4px; font: inherit; font-weight: 700; color: var(--muted); background: transparent; border: 2px dashed transparent; border-radius: var(--radius-sm); cursor: pointer; opacity: 0.55; transition: opacity 0.15s, border-color 0.15s, background 0.15s; }
+.ins__btn span { font-size: 0.85rem; font-weight: 600; }
+.ins__btn:hover, .ins__btn:focus-visible, .ins.is-target .ins__btn { opacity: 1; color: var(--accent-ink); border-color: var(--accent); background: var(--accent-soft); }
+.ins.is-target .ins__btn { padding: 14px; }
+.ins__menu { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; margin: 4px 0 8px; background: var(--surface); border: var(--border); border-radius: var(--radius-sm); box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12); animation: cardIn 0.18s ease-out both; }
+.qcard { margin-bottom: 0; animation: cardIn 0.25s ease-out both; }
+.qcard--group { background: var(--surface); border-left: 4px solid var(--accent); }
+.qcard--group > [data-body] > .q-img, .qcard--group > [data-body] > textarea { margin-bottom: 8px; }
+.qgroup { margin-top: 10px; padding: 10px 12px; background: var(--surface-2); border: 1px dashed var(--line); border-radius: var(--radius-sm); }
+.qgroup .qcard { background: var(--surface); }
+.qcard__drag { cursor: grab; padding: 2px 6px; font-size: 1.2rem; line-height: 1; color: var(--muted); border-radius: var(--radius-sm); user-select: none; }
+.qcard__drag:hover { background: var(--accent-soft); color: var(--accent-ink); }
+.qcard.is-dragging { opacity: 0.45; }
+.input--sm { width: auto; padding: 5px 8px; font-size: 0.85rem; }
+.keys--plain li span { display: block; }
+
+@media (max-width: 560px) {
+  .opts--cols-2, .opts--cols-3 { grid-template-columns: 1fr; }
+}
+.ins__menu[hidden], .lk-hints[hidden], .img-preview[hidden], [data-pane][hidden] { display: none !important; }
+@media (max-width: 560px) { .save-bar { position: static; } .hdr__titles small { display: none; } }
