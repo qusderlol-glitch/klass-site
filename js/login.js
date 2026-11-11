@@ -7,7 +7,6 @@
 
   let role = 'student';
   let method = 'name';
-  let info = '';   // selgitus Stuudiumi / Smart-ID kohta
 
   const go = () => {
     let pending = '';
@@ -26,9 +25,7 @@
   function methods() {
     const list = [
       { id: 'name', title: L('Nimi ja klass', 'Имя и класс'), desc: L('Kõige lihtsam: kirjuta oma nimi', 'Проще всего: напиши своё имя'), on: true },
-      { id: 'email', title: L('E-post', 'E-mail'), desc: role === 'teacher' ? L('Tulemused tulevad sinu e-postile', 'Результаты будут приходить на твою почту') : L('Saad tulemuste koopia e-postile', 'Копия результатов придёт тебе на почту'), on: true },
-      { id: 'stuudium', title: 'Stuudium', desc: L('Pole veel saadaval', 'Пока недоступно'), on: false },
-      { id: 'smartid', title: 'Smart-ID', desc: L('Pole veel saadaval', 'Пока недоступно'), on: false }
+      { id: 'email', title: L('E-post', 'E-mail'), desc: role === 'teacher' ? L('Tulemused tulevad sinu e-postile', 'Результаты будут приходить на твою почту') : L('Saad tulemuste koopia e-postile', 'Копия результатов придёт тебе на почту'), on: true }
     ];
     return list.map((m) => `
       <button type="button" class="method ${m.id === method ? 'is-on' : ''} ${m.on ? '' : 'is-off'}" data-method="${m.id}" aria-pressed="${m.id === method}">
@@ -85,7 +82,6 @@
         </div>
         <p class="label">${L('Kuidas sisened?', 'Как войти?')}</p>
         <div class="methods">${methods()}</div>
-        ${info ? `<div class="alert alert--info">${info}</div>` : ''}
         <form class="login__form" novalidate>
           ${fields()}
           <p class="alert alert--warn" data-err hidden></p>
@@ -94,20 +90,8 @@
       </section>
       ${howTo()}`;
 
-    root.querySelectorAll('[data-role]').forEach((b) => b.addEventListener('click', () => { role = b.dataset.role; info = ''; render(); }));
-    root.querySelectorAll('[data-method]').forEach((b) => b.addEventListener('click', () => {
-      const m = b.dataset.method;
-      if (m === 'stuudium' || m === 'smartid') {
-        info = L(
-          'Sisselogimine ' + (m === 'stuudium' ? 'Stuudiumiga' : 'Smart-ID-ga') + ' vajab kooli lepingut teenusepakkujaga ja oma serverit. See sait töötab ilma serverita, seega kasuta praegu nime või e-posti. <b>Stuudiumiga töötab sait nii:</b> õpetaja saadab töö lingi Stuudiumi sõnumis ja õpilane avab selle.',
-          'Вход через ' + (m === 'stuudium' ? 'Stuudium' : 'Smart-ID') + ' требует договора школы с этим сервисом и своего сервера. Этот сайт работает без сервера, поэтому пока входи по имени или e-mail. <b>Со Stuudium сайт работает так:</b> учитель отправляет ссылку на работу в сообщении Stuudium, а ученик её открывает.'
-        );
-      } else {
-        method = m;
-        info = '';
-      }
-      render();
-    }));
+    root.querySelectorAll('[data-role]').forEach((b) => b.addEventListener('click', () => { role = b.dataset.role; render(); }));
+    root.querySelectorAll('[data-method]').forEach((b) => b.addEventListener('click', () => { method = b.dataset.method; render(); }));
 
     const form = root.querySelector('form');
     const err = root.querySelector('[data-err]');
