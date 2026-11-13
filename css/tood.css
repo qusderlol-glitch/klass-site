@@ -317,3 +317,12 @@
 .test-card:hover { transform: none; box-shadow: none; border-color: var(--accent); }
 .q-anim, .q-anim--back { animation: fadeIn 0.2s ease-out both; }
 .test-card, .steps-cards > li, .tiles > .tile, .qcard { animation: fadeIn 0.25s ease-out both; }
+
+/* ───── Tulemused õpetajale ───── */
+.auth-card { max-width: 440px; margin: 0 auto; text-align: left; }
+.auth-card .empty__icon { margin: 0 auto 8px; display: grid; }
+.auth-card h1 { text-align: center; }
+.review__body { flex: 1; min-width: 0; }
+.answer-text { white-space: pre-wrap; padding: 8px 10px; margin: 6px 0; background: var(--surface-2); border-radius: var(--radius-sm); }
+.grade-row { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; font-weight: 600; }
+.grade-row .input { width: 80px; }

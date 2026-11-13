@@ -140,7 +140,7 @@
         </div>`);
       el.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => {
         if (!confirm(L('Kustutada töö? Õpilastel, kes selle juba avasid, jääb see alles.', 'Удалить работу? У учеников, которые её уже открыли, она останется.'))) return;
-        DB.remove(b.dataset.del).then(() => App.render()).catch((e) => UI.toast(String(e.message || e)));
+        withAuth(() => DB.remove(b.dataset.del)).then(() => App.render()).catch((e) => UI.toast(String(e.message || e)));
       }));
       return { el };
     },
@@ -530,7 +530,7 @@
         const btn = el.querySelector('[data-save]');
         btn.disabled = true;
         try {
-          const saved = await DB.publish(Core.sealWork(w));
+          const saved = await withAuth(() => DB.publish(Core.sealWork(w)));
           UI.toast(L('Test salvestatud, kood ', 'Тест сохранён, код ') + saved.code);
           location.hash = '#/jaga/' + saved.id;
         } catch (e) {
@@ -629,30 +629,166 @@
       return { el, destroy() { clearTimeout(qrT); } };
     },
 
-    // ───────── Tulemused ja vastused ─────────
+    // ───────── Tulemused: tabel kõigi õpilastega ─────────
     async results() {
-      let works = [];
-      try { works = await DB.list(); } catch (e) { works = []; }
+      await DB.init();
+      if (DB.online && !DB.authUser()) return authGate('#/tulemused');
+      let works = [], results = [], failed = '';
+      try { [works, results] = await Promise.all([DB.list(), DB.listResults()]); }
+      catch (e) { failed = /permission/i.test(String(e.message || e)) ? L('Pole õigust tulemusi lugeda. Kontrolli Firebase’i reegleid (FIREBASE.md).', 'Нет доступа к результатам. Проверь правила Firebase (FIREBASE.md).') : String(e.message || e); }
+      const byCode = {};
+      results.forEach((r) => { (byCode[r.code || '—'] = byCode[r.code || '—'] || []).push(r); });
+      const params = new URLSearchParams((location.hash.split('?')[1]) || '');
+      const sel = params.get('kood') || (works[0] && works[0].code) || Object.keys(byCode)[0] || '';
+      const list = (byCode[sel] || []).sort((a, b) => String(a.student && a.student.name).localeCompare(String(b.student && b.student.name), 'et'));
+      const work = works.find((w) => w.code === sel);
+      const user = DB.authUser();
+
       const el = h(`
         <div class="page">
-          <div class="page-head">
-            <h1>${L('Tulemused ja vastused', 'Результаты и ответы')}</h1>
-            <p class="muted">${L('Sait ei hoia tulemusi serveris. Iga õpilase tulemus tuleb kirjana.', 'Сайт не хранит результаты на сервере. Результат каждого ученика приходит письмом.')}</p>
+          <div class="page-head row row--between">
+            <div>
+              <h1>${L('Tulemused', 'Результаты')}</h1>
+              <p class="muted">${L('Kõik esitatud tööd. Vajuta õpilase nimele, et näha vastuseid ja panna punkte pikkade vastuste eest.', 'Все сданные работы. Нажмите на имя ученика, чтобы увидеть ответы и поставить баллы за развёрнутые ответы.')}</p>
+            </div>
+            ${DB.online && user ? `<span class="muted small">${esc(user.email || '')} · <button class="btn btn--ghost btn--sm" type="button" data-out>${L('Logi välja', 'Выйти')}</button></span>` : ''}
           </div>
-          <div class="grid grid--2">
-            <section class="card"><h2>${icon('megaphone')} ${L('E-postiga', 'По e-mail')}</h2>
-              <p>${L('Kui töös on sinu e-post, tuleb pärast «Esita» kiri tabeliga: õpilane, klass, punktid, hinne ja iga vastus (✓ õige, ✗ vale, ✎ hinda ise).', 'Если в работе указан ваш e-mail, после «Сдать» придёт письмо с таблицей: ученик, класс, баллы, оценка и каждый ответ (✓ верно, ✗ неверно, ✎ проверить самому).')}</p></section>
-            <section class="card"><h2>${icon('pencil')} Stuudium</h2>
-              <p>${L('Kui e-posti pole, kopeerib õpilane sama teksti ja saadab selle sulle Stuudiumi sõnumis.', 'Если e-mail не указан, ученик копирует тот же текст и отправляет его вам сообщением в Stuudium.')}</p></section>
-          </div>
-          <p class="muted small">${L('Hinne arvutatakse automaatselt: 90% → 5, 75% → 4, 50% → 3, 20% → 2. Pikad ja häälvastused hindad ise.', 'Оценка считается автоматически: 90% → 5, 75% → 4, 50% → 3, 20% → 2. Развёрнутые и голосовые ответы оцениваете сами.')}</p>
-          <h2 class="section-title">${L('Vastuste võtmed', 'Ключи ответов')}</h2>
-          ${works.length ? works.map((w) => `
-            <details class="card key-card">
-              <summary><b class="code-chip">${esc(w.code || '')}</b> <b>${esc(w.title)}</b> <span class="muted small">· ${w.questions.length} ${L('küsimust', 'вопр.')}</span></summary>
-              <ol class="keys keys--plain">${Core.leaves(w).map((lf) => { const q = Core.q(lf.raw); return `<li><span><b>${lf.label}.</b> ${esc(q.q)}</span><b>${esc(Core.rightText(q))}</b></li>`; }).join('')}</ol>
-            </details>`).join('') : `<p class="muted">${L('Töid veel pole.', 'Работ пока нет.')}</p>`}
+          ${failed ? `<div class="alert alert--warn">${esc(failed)}</div>` : ''}
+          <section class="card">
+            <div class="row row--between card-head">
+              <label class="row row--tight"><span class="label">${L('Test', 'Тест')}</span>
+                <select class="input" data-sel>
+                  ${works.map((w) => `<option value="${esc(w.code)}" ${w.code === sel ? 'selected' : ''}>${esc(w.code)} — ${esc(w.title)} (${(byCode[w.code] || []).length})</option>`).join('')}
+                </select></label>
+              ${list.length ? `<button class="btn btn--ghost" type="button" data-csv>${icon('chart')} ${L('Lae alla (Excel)', 'Скачать (Excel)')}</button>` : ''}
+            </div>
+            ${list.length ? `
+              <div class="table-wrap"><table class="table">
+                <thead><tr>
+                  <th>${L('Õpilane', 'Ученик')}</th><th>${L('Klass', 'Класс')}</th><th>${L('Esitatud', 'Сдано')}</th>
+                  <th>${L('Punktid', 'Баллы')}</th><th>${L('Hinne', 'Оценка')}</th><th>${L('Lahkus', 'Уходил')}</th><th></th>
+                </tr></thead>
+                <tbody>${list.map((r) => {
+                  const f = finalOf(r);
+                  return `<tr>
+                    <td><a href="#/vaata/${r.id}"><b>${esc((r.student && r.student.name) || '—')}</b></a></td>
+                    <td>${esc((r.student && r.student.klass) || '')}</td>
+                    <td class="muted">${new Date(r.submittedAt).toLocaleString(LANG.locale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${r.byTime ? ' ⏱' : ''}</td>
+                    <td>${f.points} / ${f.max}${f.pending ? ` <span class="badge badge--warn">${L('hinda', 'проверить')}</span>` : ''}</td>
+                    <td><b>${f.mark || '—'}</b>${r.finalMark ? '' : ` <span class="muted small">${L('autom.', 'авто')}</span>`}</td>
+                    <td>${r.away && r.away.count ? `<span class="badge badge--warn">${r.away.count}×</span>` : '—'}</td>
+                    <td class="works__act"><a class="btn btn--sm" href="#/vaata/${r.id}">${L('Vaata', 'Открыть')}</a></td>
+                  </tr>`;
+                }).join('')}</tbody>
+              </table></div>
+              <p class="muted small">${L('⏱ — aeg sai otsa. «Lahkus» — mitu korda õpilane testist lahkus (teine aken või sakk).', '⏱ — время вышло. «Уходил» — сколько раз ученик уходил из теста (другое окно или вкладка).')}</p>` : `
+              <div class="empty empty--inline"><p class="muted">${sel ? L('Selle testi kohta pole veel ühtegi tööd esitatud.', 'По этому тесту ещё никто не сдал работу.') : L('Teste veel pole.', 'Тестов пока нет.')}</p></div>`}
+          </section>
+
+          ${work ? `
+          <details class="card key-card">
+            <summary><b>${L('Vastuste võti', 'Ключ ответов')}</b> <span class="muted small">· ${esc(work.code)} ${esc(work.title)}</span></summary>
+            <ol class="keys keys--plain">${Core.leaves(work).map((lf) => { const q = Core.q(lf.raw); return `<li><span><b>${lf.label}.</b> ${esc(q.q)}</span><b>${esc(Core.rightText(q))}</b></li>`; }).join('')}</ol>
+          </details>` : ''}
         </div>`);
+
+      const s = el.querySelector('[data-sel]');
+      if (s) s.addEventListener('change', () => { location.hash = '#/tulemused?kood=' + encodeURIComponent(s.value); });
+      const out = el.querySelector('[data-out]');
+      if (out) out.addEventListener('click', async () => { await DB.signOut(); App.render(); });
+      const csv = el.querySelector('[data-csv]');
+      if (csv) csv.addEventListener('click', () => downloadCsv(work, list));
+      return { el };
+    },
+
+    // ───────── Ühe õpilase töö: vastused ja käsitsi hindamine ─────────
+    async resultView(id) {
+      await DB.init();
+      if (DB.online && !DB.authUser()) return authGate('#/vaata/' + id);
+      let r = null, work = null;
+      try { r = await DB.getResult(id); if (r) work = await DB.get(r.code); } catch (e) { /* allpool */ }
+      if (!r || !work) return { el: h(`<div class="page"><div class="card empty"><h1>${L('Tulemust ei leitud', 'Результат не найден')}</h1><div class="row row--center"><a class="btn" href="#/tulemused">${L('Tulemused', 'Результаты')}</a></div></div></div>`) };
+      let answers = [];
+      try { answers = JSON.parse(r.answers || '[]'); } catch (e) { answers = []; }
+      const leaves = Core.leaves(work);
+      const manual = Object.assign({}, r.manual || {});
+
+      const el = h(`
+        <div class="page page--narrow">
+          ${back('#/tulemused?kood=' + encodeURIComponent(r.code), L('Kõik tulemused', 'Все результаты'))}
+          <section class="card">
+            <p class="eyebrow">${esc(r.code)} · ${esc(r.title || work.title)}</p>
+            <h1>${esc((r.student && r.student.name) || '—')}${r.student && r.student.klass ? ' <span class="muted">' + esc(r.student.klass) + '</span>' : ''}</h1>
+            <dl class="facts-grid">
+              <dt>${L('Esitatud', 'Сдано')}</dt><dd>${new Date(r.submittedAt).toLocaleString(LANG.locale())}${r.byTime ? ' (' + L('aeg sai otsa', 'время вышло') + ')' : ''}</dd>
+              <dt>${L('Lahkus testist', 'Уходил из теста')}</dt><dd>${r.away && r.away.count ? r.away.count + L(' korda, kokku ', ' раз, всего ') + r.away.seconds + ' s' : L('ei lahkunud', 'не уходил')}</dd>
+              <dt>${L('Punktid', 'Баллы')}</dt><dd data-total></dd>
+              <dt>${L('Hinne', 'Оценка')}</dt><dd>
+                <select class="input input--sm" data-mark>
+                  <option value="">${L('automaatne', 'автоматически')}</option>
+                  ${[5, 4, 3, 2, 1].map((m) => `<option value="${m}" ${Number(r.finalMark) === m ? 'selected' : ''}>${m}</option>`).join('')}
+                </select></dd>
+            </dl>
+          </section>
+          <section class="card">
+            <h2>${L('Vastused', 'Ответы')}</h2>
+            <ol class="review">${leaves.map((lf, i) => {
+              const q = Core.q(lf.raw);
+              const p = (r.result && r.result.per && r.result.per[i]) || { ok: null, pts: 1, earned: 0 };
+              const canGrade = p.ok === null || q.type === 'copy';
+              return `<li class="review__item ${p.ok === null ? 'is-voice' : p.ok || p.earned > 0 ? 'is-ok' : 'is-bad'}">
+                <span class="review__icon">${icon(p.ok === null ? 'pencil' : p.ok || p.earned > 0 ? 'check' : 'cross')}</span>
+                <div class="review__body">
+                  <b>${lf.label}. ${esc(q.q)}</b>
+                  <p class="answer-text">${esc(Core.answerText(q, answers[i]))}</p>
+                  ${p.typo ? `<p class="muted small">${L('Väike trükiviga — loetud õigeks.', 'Небольшая опечатка — засчитано.')}</p>` : ''}
+                  ${q.type === 'copy' ? `<p class="muted small">${L('Kattuvus', 'Совпадение')}: ${Math.round((p.score || 0) * 100)}%</p>` : ''}
+                  ${p.ok === false && q.type !== 'copy' ? `<p class="review__right">${L('Õige', 'Правильно')}: ${esc(Core.rightText(q))}</p>` : ''}
+                  ${canGrade ? `<label class="grade-row">${L('Punktid', 'Баллы')}: <input class="input input--sm" type="number" min="0" max="${p.pts}" step="0.5" data-manual="${i}" value="${manual[i] != null ? manual[i] : p.ok === null ? '' : p.earned}" placeholder="0–${p.pts}"> / ${p.pts}</label>` : `<p class="muted small">${p.earned} / ${p.pts} ${L('p', 'б.')}</p>`}
+                </div>
+              </li>`;
+            }).join('')}</ol>
+            <label class="field-row"><span class="label">${L('Kommentaar (ainult sulle)', 'Комментарий (только для вас)')}</span><textarea class="input" rows="2" data-comment maxlength="500">${esc(r.comment || '')}</textarea></label>
+            <p class="alert alert--warn" data-err hidden></p>
+            <div class="row row--between">
+              <button class="btn btn--ghost btn--danger" type="button" data-del>${L('Kustuta see tulemus', 'Удалить этот результат')}</button>
+              <button class="btn btn--lg" type="button" data-save>${icon('check')} ${L('Salvesta hinne', 'Сохранить оценку')}</button>
+            </div>
+          </section>
+        </div>`);
+
+      const total = el.querySelector('[data-total]');
+      const refresh = () => {
+        const f = finalOf(Object.assign({}, r, { manual, finalMark: null }));
+        total.textContent = f.points + ' / ' + f.max + ' (' + f.percent + '%)' + (f.pending ? ' — ' + L('mõni vastus hindamata', 'не все ответы проверены') : '');
+        el.querySelector('[data-mark] option[value=""]').textContent = L('automaatne', 'автоматически') + ' (' + (f.mark || '—') + ')';
+      };
+      el.querySelectorAll('[data-manual]').forEach((inp) => inp.addEventListener('input', () => {
+        const v = inp.value === '' ? null : Math.max(0, Math.min(Number(inp.max), Number(inp.value)));
+        if (v == null) delete manual[inp.dataset.manual]; else manual[inp.dataset.manual] = v;
+        refresh();
+      }));
+      el.querySelector('[data-save]').addEventListener('click', async () => {
+        const btn = el.querySelector('[data-save]');
+        btn.disabled = true;
+        try {
+          const fm = el.querySelector('[data-mark]').value;
+          await DB.updateResult(id, { manual, finalMark: fm ? Number(fm) : null, comment: el.querySelector('[data-comment]').value });
+          UI.toast(L('Salvestatud', 'Сохранено'));
+          location.hash = '#/tulemused?kood=' + encodeURIComponent(r.code);
+        } catch (e) {
+          btn.disabled = false;
+          const err = el.querySelector('[data-err]');
+          err.hidden = false;
+          err.textContent = String(e.message || e);
+        }
+      });
+      el.querySelector('[data-del]').addEventListener('click', async () => {
+        if (!confirm(L('Kustutada see tulemus jäädavalt?', 'Удалить этот результат навсегда?'))) return;
+        await DB.removeResult(id);
+        location.hash = '#/tulemused?kood=' + encodeURIComponent(r.code);
+      });
+      refresh();
       return { el };
     },
 
@@ -669,7 +805,7 @@
           ${offlineNote()}
           <div data-ed></div>
         </div>`);
-      el.querySelector('[data-ed]').appendChild(Lihtkood.editor(text, (t) => DB.savePage(t)));
+      el.querySelector('[data-ed]').appendChild(Lihtkood.editor(text, (t) => withAuth(() => DB.savePage(t))));
       return { el };
     },
 
@@ -726,6 +862,107 @@
       return { el, destroy() { T.onUpdate = null; } };
     }
   };
+
+  // Kui andmebaas nõuab sisselogimist, küsime seda ja proovime uuesti
+  async function withAuth(fn) {
+    try { return await fn(); } catch (e) {
+      if (!DB.online || !/permission|insufficient/i.test(String(e.code || '') + ' ' + String(e.message || ''))) throw e;
+      if (!(await loginModal())) throw new Error(L('Pole sisse logitud.', 'Вход не выполнен.'));
+      return fn();
+    }
+  }
+  function loginModal() {
+    return new Promise((resolve) => {
+      const ov = h(`
+        <div class="modal modal--anim" role="dialog" aria-modal="true" aria-label="${L('Õpetaja sisselogimine', 'Вход учителя')}">
+          <div class="modal__box card auth-card">
+            <h2>${L('Logi õpetajana sisse', 'Войдите как учитель')}</h2>
+            <p class="muted">${L('Teste saab muuta ainult sisseloginud õpetaja.', 'Менять тесты может только учитель, который вошёл.')}</p>
+            <form class="login__form" data-form>
+              <label class="field-row"><span class="label">${L('E-post', 'E-mail')}</span><input class="input" type="email" name="email" autocomplete="username" required></label>
+              <label class="field-row"><span class="label">${L('Parool', 'Пароль')}</span><input class="input" type="password" name="password" autocomplete="current-password" required></label>
+              <p class="alert alert--warn" data-err hidden></p>
+              <div class="row row--between"><button class="btn btn--ghost" type="button" data-cancel>${L('Tühista', 'Отмена')}</button><button class="btn" type="submit">${L('Logi sisse', 'Войти')}</button></div>
+            </form>
+          </div>
+        </div>`);
+      document.body.appendChild(ov);
+      const form = ov.querySelector('[data-form]');
+      ov.querySelector('[data-cancel]').addEventListener('click', () => { ov.remove(); resolve(false); });
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try { await DB.signIn(form.elements.email.value.trim(), form.elements.password.value); ov.remove(); resolve(true); }
+        catch (er) { const x = ov.querySelector('[data-err]'); x.hidden = false; x.textContent = String(er.message || er); }
+      });
+      form.elements.email.focus();
+    });
+  }
+
+  // Lõplikud punktid: automaatsed + õpetaja käsitsi pandud (pikad vastused, hääl, ümberkirjutamine)
+  function finalOf(r) {
+    const per = (r.result && r.result.per) || [];
+    const manual = r.manual || {};
+    let points = 0, max = 0, pending = false;
+    per.forEach((p, i) => {
+      max += Number(p.pts || 0);
+      if (manual[i] != null) points += Number(manual[i]);
+      else if (p.ok === null) pending = true;
+      else points += Number(p.earned || 0);
+    });
+    points = Math.round(points * 10) / 10;
+    const percent = max ? Math.round((points / max) * 100) : 0;
+    const mark = r.finalMark || (max ? Core.mark(percent) : null);
+    return { points, max, percent, mark, pending };
+  }
+
+  // Tabel Excelisse (CSV, eraldaja ; — Eesti/Vene Excel avab selle kohe õigesti)
+  function downloadCsv(work, list) {
+    const cell = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const head = [L('Õpilane', 'Ученик'), L('Klass', 'Класс'), L('Esitatud', 'Сдано'), L('Punktid', 'Баллы'), L('Max', 'Макс'), '%', L('Hinne', 'Оценка'), L('Lahkus testist', 'Уходил из теста'), L('Kommentaar', 'Комментарий')];
+    const rows = list.map((r) => {
+      const f = finalOf(r);
+      return [(r.student && r.student.name) || '', (r.student && r.student.klass) || '', new Date(r.submittedAt).toLocaleString(LANG.locale()), f.points, f.max, f.percent, f.mark || '', (r.away && r.away.count) || 0, r.comment || ''];
+    });
+    const text = '﻿' + [head].concat(rows).map((row) => row.map(cell).join(';')).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
+    a.download = (work ? work.code + ' ' + work.title : 'tulemused').replace(/[\\/:*?"<>|]/g, '') + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+
+  // Õpetaja sisselogimine (Firebase): ilma selleta ei saa tulemusi lugeda ega teste muuta
+  function authGate(returnTo) {
+    const el = h(`
+      <div class="page page--narrow">
+        <div class="card auth-card">
+          <div class="empty__icon">${icon('user')}</div>
+          <h1>${L('Õpetaja sisselogimine', 'Вход учителя')}</h1>
+          <p class="muted">${L('Tulemused on näha ainult õpetajale. Logi sisse e-posti ja parooliga, mis on loodud Firebase’is.', 'Результаты видит только учитель. Войдите с e-mail и паролем, созданными в Firebase.')}</p>
+          <form class="login__form" data-form>
+            <label class="field-row"><span class="label">${L('E-post', 'E-mail')}</span><input class="input" type="email" name="email" autocomplete="username" required></label>
+            <label class="field-row"><span class="label">${L('Parool', 'Пароль')}</span><input class="input" type="password" name="password" autocomplete="current-password" required></label>
+            <p class="alert alert--warn" data-err hidden></p>
+            <button class="btn btn--lg" type="submit">${L('Logi sisse', 'Войти')}</button>
+          </form>
+        </div>
+      </div>`);
+    const form = el.querySelector('[data-form]');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const err = el.querySelector('[data-err]');
+      err.hidden = true;
+      try {
+        await DB.signIn(form.elements.email.value.trim(), form.elements.password.value);
+        if (location.hash === returnTo) App.render(); else location.hash = returnTo;
+      } catch (er) {
+        err.hidden = false;
+        err.textContent = String(er.message || er);
+      }
+    });
+    return { el };
+  }
 
   // Küsimuste panga valik (aken)
   function bankPicker(onPick) {

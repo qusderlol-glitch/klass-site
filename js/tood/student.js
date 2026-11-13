@@ -423,6 +423,17 @@
 
         el.innerHTML = `<div class="card empty"><div class="empty__icon">${icon('megaphone')}</div><h1>${L('Saadan vastused õpetajale…', 'Отправляю ответы учителю…')}</h1><p class="muted" data-slow></p></div>`;
         const slow = setTimeout(() => { const s = el.querySelector('[data-slow]'); if (s) s.textContent = L('Natuke veel… (kuni 30 sekundit)', 'Ещё чуть-чуть… (до 30 секунд)'); }, 4000);
+        // tulemus läheb andmebaasi — õpetaja näeb seda saidil
+        try {
+          const u = Core.user() || {};
+          const rec = JSON.parse(JSON.stringify({
+            code: w.code || '', workId: w.id, title: Core.title(w),
+            student: { name: u.name || '', klass: u.klass || '', email: u.email || '' },
+            result: e.result, away: e.away, submittedAt: e.submittedAt, byTime: e.byTime, lang: LANG.get()
+          }));
+          rec.answers = JSON.stringify(e.answers);   // Firestore ei luba massiive massiivides
+          e.resultId = await DB.saveResult(rec);
+        } catch (er) { e.resultError = String(er.message || er); }
         e.delivery = await deliver(e);
         clearTimeout(slow);
         Core.saveEntry(id, e);
@@ -500,11 +511,12 @@
 
           <section class="card">
             <h2>${icon('megaphone')} ${L('Kas õpetaja sai vastused?', 'Получил ли учитель ответы?')}</h2>
+            ${e.resultId ? `<div class="alert alert--ok">${icon('check')} ${L('Vastused on salvestatud — õpetaja näeb neid saidil.', 'Ответы сохранены — учитель видит их на сайте.')}</div>` : ''}
             ${d.mode === 'email' && d.ok ? `<div class="alert alert--ok">${icon('check')} ${L('Vastused saadeti õpetajale.', 'Ответы отправлены учителю.')}</div>` : ''}
             ${d.mode === 'email' && !d.ok ? `<div class="alert alert--warn">${icon('cross')} ${L('Saatmine ebaõnnestus', 'Отправка не удалась')}: ${esc(d.error || '')}</div>
               <div class="row"><button class="btn" type="button" data-resend>${L('Saada uuesti', 'Отправить ещё раз')}</button></div>` : ''}
-            ${d.mode === 'copy' ? `<div class="alert alert--info">${L('Saada vastused Stuudiumis: kopeeri tekst ja kleebi see õpetajale saadetavasse sõnumisse.', 'Отправь ответы в Stuudium: скопируй текст и вставь его в сообщение учителю.')}</div>` : ''}
-            ${d.mode === 'email' && d.ok ? '' : `
+            ${d.mode === 'copy' && !e.resultId ? `<div class="alert alert--info">${L('Saada vastused Stuudiumis: kopeeri tekst ja kleebi see õpetajale saadetavasse sõnumisse.', 'Отправь ответы в Stuudium: скопируй текст и вставь его в сообщение учителю.')}</div>` : ''}
+            ${(d.mode === 'email' && d.ok) || e.resultId ? '' : `
               <p class="muted small">${L('Stuudium → Sõnumid → Uus sõnum → vali õpetaja → kleebi (Ctrl + V) → saada.', 'Stuudium → Сообщения → Новое сообщение → выбери учителя → вставь (Ctrl + V) → отправь.')}</p>
               <textarea class="input textarea" readonly rows="8" data-text></textarea>
               <div class="row">

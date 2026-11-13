@@ -8,6 +8,7 @@
   const LOCAL_WORKS = 'klass-db-works';
   const LOCAL_META = 'klass-db-meta';
   const LOCAL_PAGE = 'klass-db-page';
+  const LOCAL_RESULTS = 'klass-db-results';
 
   const read = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; } catch (e) { return d; } };
   const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* täis */ } };
@@ -18,6 +19,7 @@
   });
 
   let fs = null;       // Firestore
+  let auth = null;     // õpetaja sisselogimine (Firebase Auth)
   let ready = null;
 
   const DB = {
@@ -35,8 +37,11 @@
         try {
           await loadScript(SDK + 'firebase-app-compat.js');
           await loadScript(SDK + 'firebase-firestore-compat.js');
+          await loadScript(SDK + 'firebase-auth-compat.js');
           if (!firebase.apps.length) firebase.initializeApp(cfg);
           fs = firebase.firestore();
+          auth = firebase.auth();
+          await new Promise((res) => { const off = auth.onAuthStateChanged(() => { off(); res(); }); });
           DB.online = true;
           return true;
         } catch (e) {
@@ -46,6 +51,62 @@
         }
       })();
       return ready;
+    },
+
+    // ───── Õpetaja sisselogimine ─────
+    authUser() { return auth ? auth.currentUser : (DB.online ? null : { email: 'local' }); },
+    async signIn(email, password) {
+      await DB.init();
+      if (!DB.online) return { email: 'local' };
+      try {
+        const r = await auth.signInWithEmailAndPassword(email, password);
+        return r.user;
+      } catch (e) {
+        const c = e.code || '';
+        if (/configuration-not-found|operation-not-allowed/.test(c)) throw new Error(L('Firebase-is pole e-posti sisselogimine veel sisse lülitatud (vt FIREBASE.md).', 'В Firebase ещё не включён вход по e-mail (см. FIREBASE.md).'));
+        if (/invalid-credential|wrong-password|user-not-found|invalid-email/.test(c)) throw new Error(L('Vale e-post või parool.', 'Неверный e-mail или пароль.'));
+        if (/too-many-requests/.test(c)) throw new Error(L('Liiga palju katseid. Oota natuke.', 'Слишком много попыток. Подожди немного.'));
+        throw e;
+      }
+    },
+    async signOut() { if (auth) await auth.signOut(); },
+
+    // ───── Tulemused ─────
+    async saveResult(r) {
+      await DB.init();
+      if (DB.online) { const ref = await fs.collection('results').add(r); return ref.id; }
+      const all = read(LOCAL_RESULTS, {});
+      const id = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      all[id] = Object.assign({}, r, { id });
+      write(LOCAL_RESULTS, all);
+      return id;
+    },
+    async listResults() {
+      await DB.init();
+      if (DB.online) {
+        const snap = await fs.collection('results').get();
+        return snap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+      }
+      return Object.values(read(LOCAL_RESULTS, {}));
+    },
+    async getResult(id) {
+      await DB.init();
+      if (DB.online) { const d = await fs.collection('results').doc(id).get(); return d.exists ? Object.assign({ id: d.id }, d.data()) : null; }
+      return read(LOCAL_RESULTS, {})[id] || null;
+    },
+    async updateResult(id, patch) {
+      await DB.init();
+      if (DB.online) { await fs.collection('results').doc(id).update(patch); return; }
+      const all = read(LOCAL_RESULTS, {});
+      all[id] = Object.assign({}, all[id], patch);
+      write(LOCAL_RESULTS, all);
+    },
+    async removeResult(id) {
+      await DB.init();
+      if (DB.online) { await fs.collection('results').doc(id).delete(); return; }
+      const all = read(LOCAL_RESULTS, {});
+      delete all[id];
+      write(LOCAL_RESULTS, all);
     },
 
     // Kõik avaldatud tööd (uuemad eespool)

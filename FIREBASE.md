@@ -35,3 +35,29 @@ service cloud.firestore {
    Можно и самому: вставь значения в `config.js` вместо `FIREBASE: null`.
 
 `apiKey` у Firebase не секретный — он и так виден всем на сайте, это нормально.
+
+## 4. Вход учителя и результаты на сайте (обязательно)
+
+Чтобы учитель видел результаты на сайте, а ученики **не** могли их читать и менять тесты:
+
+1. Слева **Build → Authentication** (или «Security → Authentication») → **Get started**.
+2. Вкладка **Sign-in method** → **Email/Password** → включи первый переключатель → **Save**.
+3. Вкладка **Users** → **Add user** → e-mail учителя и пароль (придумай надёжный) → **Add user**.
+   Этим e-mail и паролем учитель входит на сайте во вкладке «Tulemused».
+4. **Firestore Database → Rules** → замени всё на это и нажми **Publish**:
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /works/{code}  { allow read: if true; allow write: if request.auth != null; }
+    match /meta/{doc}    { allow read: if true; allow write: if request.auth != null; }
+    match /pages/{doc}   { allow read: if true; allow write: if request.auth != null; }
+    match /results/{id}  { allow create: if true; allow read, update, delete: if request.auth != null; }
+  }
+}
+```
+
+Что это значит:
+- тесты и страницу класса **читают все**, а **создавать и менять** может только учитель, который вошёл;
+- результат **сдать** может любой ученик, а **смотреть** результаты — только учитель.

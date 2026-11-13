@@ -39,7 +39,7 @@
           { id: '', title: L('Töölaud', 'Главная'), icon: 'home' },
           { id: 'uus', title: L('Koosta test', 'Создать тест'), icon: 'pencil' },
           { id: 'leht', title: L('Klassi leht', 'Страница класса'), icon: 'code' },
-          { id: 'tulemused', title: L('Tulemused ja vastused', 'Результаты и ответы'), icon: 'chart' },
+          { id: 'tulemused', title: L('Tulemused', 'Результаты'), icon: 'chart' },
           { id: 'taimer', title: L('Taimer', 'Таймер'), icon: 'clock' },
           { id: 'seaded', title: L('Seaded', 'Настройки'), icon: 'gear', bottom: true }
         ]
@@ -51,7 +51,7 @@
           { id: 'kusitlus', href: 'anketa.html', title: L('Küsitlus saidi kohta', 'Анкета о сайте'), icon: 'pencil' },
           { id: 'seaded', title: L('Seaded', 'Настройки'), icon: 'gear', bottom: true }
         ];
-    const active = { muuda: 'uus', jaga: '', too: '', lahenda: '', tulemus: '' }[route];
+    const active = { muuda: 'uus', jaga: '', too: '', lahenda: '', tulemus: '', vaata: 'tulemused' }[route];
     const act = active != null ? active : route;
     side.innerHTML = items.map((n) => `
       <a class="side__link ${n.id === act ? 'is-active' : ''} ${n.bottom ? 'side__link--bottom' : ''}" href="${n.href || '#/' + n.id}" data-nav="${n.id}" ${n.id === act ? 'aria-current="page"' : ''}>
@@ -135,7 +135,7 @@
       if (needLogin()) return;
       if (current && current.destroy) current.destroy();
       current = null;
-      const parts = location.hash.replace(/^#\/?/, '').split('/');
+      const parts = location.hash.replace(/^#\/?/, '').split('?')[0].split('/');
       const route = parts[0] || '';
       const arg = parts.slice(1).join('/');
       const teacher = Core.isTeacher();
@@ -143,7 +143,7 @@
       nav(route);
 
       let page;
-      const onlyTeacher = ['uus', 'muuda', 'jaga', 'tulemused', 'taimer'];
+      const onlyTeacher = ['uus', 'muuda', 'jaga', 'tulemused', 'vaata', 'taimer'];
       if (!view.firstChild) view.innerHTML = '<div class="page"><p class="muted">…</p></div>';
       if (onlyTeacher.includes(route) && !teacher) page = { el: h(`<div class="page"><div class="card empty"><h1>${L('Ainult õpetajale', 'Только для учителя')}</h1><div class="row row--center"><a class="btn" href="#/">${L('Minu tööd', 'Мои работы')}</a></div></div></div>`) };
       else switch (route) {
@@ -159,11 +159,12 @@
         case 'muuda': page = await Teacher.edit(arg); break;
         case 'jaga': page = await Teacher.share(arg); break;
         case 'tulemused': page = await Teacher.results(); break;
+        case 'vaata': page = await Teacher.resultView(arg); break;
         case 'taimer': page = Teacher.timer(); break;
         case 'seaded': page = settings(); break;
         default: page = Student.broken();
       }
-      if (location.hash.replace(/^#\/?/, '').split('/')[0] !== route) return;
+      if (location.hash.replace(/^#\/?/, '').split('?')[0].split('/')[0] !== route) return;
       current = page;
       view.innerHTML = '';
       view.appendChild(page.el);
