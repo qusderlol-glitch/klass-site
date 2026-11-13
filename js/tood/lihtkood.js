@@ -60,6 +60,11 @@
       const q = rest.match(/^"([^"]*)"\s*(.*)$/);
       if (cmd.id === 'line') { blocks.push({ id: 'line', pos, line: n }); return; }
       if (!q) { errors.push({ line: n, msg: L('Tekst peab olema jutumärkides: ', 'Текст должен быть в кавычках: ') + (lang() === 'ru' ? cmd.tplRu : cmd.tplEt) }); return; }
+      const extra = q[2].trim();
+      if (extra && cmd.id !== 'button') {
+        errors.push({ line: n, msg: L('Pärast jutumärke on üleliigne «' + extra + '». Kustuta see või vajuta Tab, et asukoht valida.', 'После кавычек лишнее «' + extra + '». Удали это или нажми Tab, чтобы выбрать место.') });
+        return;
+      }
       const b = { id: cmd.id, text: q[1], pos, line: n };
       if (cmd.id === 'button') {
         const t = q[2].match(/^->\s*"?([^"\s]+)"?\s*$/);
@@ -230,7 +235,8 @@
       const list = POS[lang()];
       const m = ln.text.match(/\(([^)]{1})\)\s*$/);
       let next;
-      if (!m) next = ln.text.replace(/\s*$/, '') + ' (' + list[0][0] + ')';
+      // kui lõpus on poolik sulg, nt « (» või « (Ц», asendame selle
+      if (!m) next = ln.text.replace(/\s*\([^)"]{0,2}$/, '').replace(/\s*$/, '') + ' (' + list[0][0] + ')';
       else {
         const cur = list.findIndex((p) => p[0] === m[1].toUpperCase());
         const other = POS[lang() === 'ru' ? 'et' : 'ru'].findIndex((p) => p[0] === m[1].toUpperCase());

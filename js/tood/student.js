@@ -108,7 +108,7 @@
       const el = h(`
         <div class="page">
           <div class="page-head">
-            <h1>${L('Minu tööd', 'Мои работы')}</h1>
+            <h1>${L('Minu tulemused', 'Мои результаты')}</h1>
             <p class="muted">${L('Siin on testid, mida oled alustanud või esitanud.', 'Здесь тесты, которые ты начал или сдал.')}</p>
           </div>
 
@@ -447,9 +447,11 @@
         if (finishing) return;
         if (document.hidden) { awayAt = Date.now(); return; }
         if (awayAt) {
-          e.away.count += 1;
-          e.away.seconds += Math.round((Date.now() - awayAt) / 1000);
+          const sec = Math.round((Date.now() - awayAt) / 1000);
           awayAt = 0;
+          if (sec < 3) return;   // lühike hetk (nt mikrofoni luba) ei ole lahkumine
+          e.away.count += 1;
+          e.away.seconds += sec;
           Core.saveEntry(id, e);
           UI.toast(L('Sa lahkusid testist — õpetaja näeb seda.', 'Ты уходил из теста — учитель это увидит.'));
         }

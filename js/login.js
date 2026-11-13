@@ -121,6 +121,7 @@
           if (pin && v('pin') !== pin) return fail(L('Õpetaja kood ei sobi.', 'Неверный код учителя.'));
         }
       }
+      if (role === 'student') { try { await DB.signOut(); } catch (er) { /* ei midagi */ } }
       Core.setUser({ role, name: v('name'), klass: v('klass'), email, method, since: Date.now() });
       go();
     });
@@ -134,8 +135,8 @@
         <ol class="how">
           <li><b>${L('Õpetaja', 'Учитель')}</b> ${L('siseneb ja koostab töö: küsimused, aeg, juhend.', 'входит и создаёт работу: вопросы, время, инструкцию.')}</li>
           <li>${L('Õpetaja <b>saadab töö lingi</b> Stuudiumis või e-postiga või näitab koodi tahvlil.', 'Учитель <b>отправляет ссылку</b> в Stuudium или по e-mail, или показывает код на доске.')}</li>
-          <li><b>${L('Õpilane', 'Ученик')}</b> ${L('siseneb, valib töö, vajutab <b>«Alusta»</b> ja lahendab selle.', 'входит, выбирает работу, нажимает <b>«Начать»</b> и выполняет её.')}</li>
-          <li>${L('Pärast <b>«Esita»</b> läheb tulemus õpetaja e-postile või Stuudiumisse.', 'После <b>«Сдать»</b> результат уходит учителю на почту или в Stuudium.')}</li>
+          <li><b>${L('Õpilane', 'Ученик')}</b> ${L('siseneb, sisestab koodi, vajutab <b>«Alusta testi»</b> ja vastab.', 'входит, вводит код, нажимает <b>«Alusta testi»</b> и отвечает.')}</li>
+          <li>${L('Pärast <b>«Esita töö»</b> näeb õpetaja vastuseid saidil vahekaardil «Tulemused».', 'После <b>«Esita töö»</b> учитель видит ответы на сайте во вкладке «Tulemused».')}</li>
         </ol>
       </aside>`;
   }
