@@ -64,7 +64,7 @@
       } catch (e) {
         const c = e.code || '';
         if (/configuration-not-found|operation-not-allowed/.test(c)) throw new Error(L('Firebase-is pole e-posti sisselogimine veel sisse lülitatud (vt FIREBASE.md).', 'В Firebase ещё не включён вход по e-mail (см. FIREBASE.md).'));
-        if (/invalid-credential|wrong-password|user-not-found|invalid-email/.test(c)) throw new Error(L('Vale e-post või parool.', 'Неверный e-mail или пароль.'));
+        if (/invalid-credential|wrong-password|user-not-found|invalid-email/.test(c)) throw new Error(window.CONFIG && CONFIG.TEACHER_EMAIL ? L('Õpetaja kood ei sobi.', 'Неверный код учителя.') : L('Vale e-post või parool.', 'Неверный e-mail или пароль.'));
         if (/too-many-requests/.test(c)) throw new Error(L('Liiga palju katseid. Oota natuke.', 'Слишком много попыток. Подожди немного.'));
         throw e;
       }

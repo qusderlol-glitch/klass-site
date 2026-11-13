@@ -46,8 +46,8 @@
         <input class="input" name="email" type="email" maxlength="80" ${required ? 'required' : ''} autocomplete="email" placeholder="nimi@kool.ee"></label>`;
     const pinF = role === 'teacher' ? `
       <label class="field-row field-row--short"><span class="label">${L('Õpetaja kood', 'Код учителя')} *</span>
-        <input class="input" name="pin" type="password" inputmode="numeric" maxlength="12" required autocomplete="off"></label>
-      <p class="muted small">${L('Kood on vajalik, et õpilased ei satuks kogemata õpetaja vaatesse.', 'Код нужен, чтобы ученики случайно не попали в режим учителя.')}</p>` : '';
+        <input class="input" name="pin" type="password" maxlength="64" required autocomplete="current-password"></label>
+      <p class="muted small">${L('Ühine kood kõigile õpetajatele. Sellega saad teste teha ja tulemusi vaadata.', 'Общий код для всех учителей. С ним можно создавать тесты и смотреть результаты.')}</p>` : '';
     if (role === 'teacher') return nameF + emailF(method === 'email') + pinF;
     return nameF + klassF + (method === 'email' ? emailF(true) : '');
   }
@@ -67,7 +67,7 @@
         </section>
         ${howTo()}`;
       root.querySelector('[data-continue]').addEventListener('click', go);
-      root.querySelector('[data-logout]').addEventListener('click', () => { Core.logout(); render(); });
+      root.querySelector('[data-logout]').addEventListener('click', async () => { Core.logout(); try { await DB.signOut(); } catch (e) { /* ei midagi */ } render(); });
       renderFoot();
       return;
     }
@@ -95,17 +95,31 @@
 
     const form = root.querySelector('form');
     const err = root.querySelector('[data-err]');
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const v = (n) => (form.elements[n] ? form.elements[n].value.trim() : '');
-      const fail = (m) => { err.hidden = false; err.textContent = m; };
+      const btn = form.querySelector('[type="submit"]');
+      const fail = (m) => { err.hidden = false; err.textContent = m; btn.disabled = false; };
       if (!v('name')) return fail(L('Kirjuta oma nimi.', 'Напиши своё имя.'));
       const email = v('email');
       if (method === 'email' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return fail(L('Kontrolli e-posti aadressi.', 'Проверь адрес e-mail.'));
       if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return fail(L('Kontrolli e-posti aadressi.', 'Проверь адрес e-mail.'));
       if (role === 'teacher') {
-        const pin = String((window.CONFIG && CONFIG.TEACHER_PIN) || '');
-        if (pin && v('pin') !== pin) return fail(L('Õpetaja kood ei sobi.', 'Неверный код учителя.'));
+        // Õpetaja kood = ühise õpetajakonto parool Firebase'is. Koodi ei ole saidi koodis — seda kontrollib Google.
+        const cfg = window.CONFIG || {};
+        if (cfg.FIREBASE && cfg.TEACHER_EMAIL) {
+          btn.disabled = true;
+          err.hidden = true;
+          try {
+            await DB.signIn(cfg.TEACHER_EMAIL, form.elements.pin.value);
+          } catch (er) {
+            const m = String(er.message || er);
+            return fail(/Firebase/.test(m) ? m : L('Õpetaja kood ei sobi.', 'Неверный код учителя.'));
+          }
+        } else {
+          const pin = String(cfg.TEACHER_PIN || '');
+          if (pin && v('pin') !== pin) return fail(L('Õpetaja kood ei sobi.', 'Неверный код учителя.'));
+        }
       }
       Core.setUser({ role, name: v('name'), klass: v('klass'), email, method, since: Date.now() });
       go();

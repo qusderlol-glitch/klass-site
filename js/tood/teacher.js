@@ -863,6 +863,16 @@
     }
   };
 
+  // Ühine õpetajakonto: e-post on config.js-is, õpetaja kirjutab ainult koodi
+  const sharedEmail = () => (window.CONFIG && CONFIG.TEACHER_EMAIL) || '';
+  function teacherFields() {
+    return sharedEmail()
+      ? `<label class="field-row"><span class="label">${L('Õpetaja kood', 'Код учителя')}</span><input class="input" type="password" name="password" autocomplete="current-password" required></label>`
+      : `<label class="field-row"><span class="label">${L('E-post', 'E-mail')}</span><input class="input" type="email" name="email" autocomplete="username" required></label>
+         <label class="field-row"><span class="label">${L('Parool', 'Пароль')}</span><input class="input" type="password" name="password" autocomplete="current-password" required></label>`;
+  }
+  const teacherEmail = (form) => sharedEmail() || form.elements.email.value.trim();
+
   // Kui andmebaas nõuab sisselogimist, küsime seda ja proovime uuesti
   async function withAuth(fn) {
     try { return await fn(); } catch (e) {
@@ -879,8 +889,7 @@
             <h2>${L('Logi õpetajana sisse', 'Войдите как учитель')}</h2>
             <p class="muted">${L('Teste saab muuta ainult sisseloginud õpetaja.', 'Менять тесты может только учитель, который вошёл.')}</p>
             <form class="login__form" data-form>
-              <label class="field-row"><span class="label">${L('E-post', 'E-mail')}</span><input class="input" type="email" name="email" autocomplete="username" required></label>
-              <label class="field-row"><span class="label">${L('Parool', 'Пароль')}</span><input class="input" type="password" name="password" autocomplete="current-password" required></label>
+              ${teacherFields()}
               <p class="alert alert--warn" data-err hidden></p>
               <div class="row row--between"><button class="btn btn--ghost" type="button" data-cancel>${L('Tühista', 'Отмена')}</button><button class="btn" type="submit">${L('Logi sisse', 'Войти')}</button></div>
             </form>
@@ -891,10 +900,10 @@
       ov.querySelector('[data-cancel]').addEventListener('click', () => { ov.remove(); resolve(false); });
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        try { await DB.signIn(form.elements.email.value.trim(), form.elements.password.value); ov.remove(); resolve(true); }
+        try { await DB.signIn(teacherEmail(form), form.elements.password.value); ov.remove(); resolve(true); }
         catch (er) { const x = ov.querySelector('[data-err]'); x.hidden = false; x.textContent = String(er.message || er); }
       });
-      form.elements.email.focus();
+      (form.elements.email || form.elements.password).focus();
     });
   }
 
@@ -939,10 +948,9 @@
         <div class="card auth-card">
           <div class="empty__icon">${icon('user')}</div>
           <h1>${L('Õpetaja sisselogimine', 'Вход учителя')}</h1>
-          <p class="muted">${L('Tulemused on näha ainult õpetajale. Logi sisse e-posti ja parooliga, mis on loodud Firebase’is.', 'Результаты видит только учитель. Войдите с e-mail и паролем, созданными в Firebase.')}</p>
+          <p class="muted">${L('Tulemused on näha ainult õpetajale. Kirjuta õpetaja kood.', 'Результаты видит только учитель. Введите код учителя.')}</p>
           <form class="login__form" data-form>
-            <label class="field-row"><span class="label">${L('E-post', 'E-mail')}</span><input class="input" type="email" name="email" autocomplete="username" required></label>
-            <label class="field-row"><span class="label">${L('Parool', 'Пароль')}</span><input class="input" type="password" name="password" autocomplete="current-password" required></label>
+            ${teacherFields()}
             <p class="alert alert--warn" data-err hidden></p>
             <button class="btn btn--lg" type="submit">${L('Logi sisse', 'Войти')}</button>
           </form>
@@ -954,7 +962,7 @@
       const err = el.querySelector('[data-err]');
       err.hidden = true;
       try {
-        await DB.signIn(form.elements.email.value.trim(), form.elements.password.value);
+        await DB.signIn(teacherEmail(form), form.elements.password.value);
         if (location.hash === returnTo) App.render(); else location.hash = returnTo;
       } catch (er) {
         err.hidden = false;

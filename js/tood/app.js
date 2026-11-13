@@ -124,8 +124,9 @@
     return { el };
   }
 
-  function logout() {
+  async function logout() {
     Core.logout();
+    try { await DB.signOut(); } catch (e) { /* ei midagi */ }
     location.href = 'index.html';
   }
 
