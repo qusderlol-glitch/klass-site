@@ -581,6 +581,7 @@
                 <h2>${icon('monitor')} ${L('Tahvel / projektor', 'Доска / проектор')}</h2>
                 <p class="muted">${L('Õpilased avavad vahekaardi «Testid», sisestavad koodi ja vajutavad «Alusta testi».', 'Ученики открывают вкладку «Testid», вводят код и нажимают «Начать тест».')}</p>
                 <button class="btn" type="button" data-proj>${icon('monitor')} ${L('Näita tahvlil', 'Показать на доске')}</button>
+                <a class="btn btn--ghost" href="juhend.html${code ? '?kood=' + encodeURIComponent(code) : ''}" target="_blank" rel="noopener">${icon('book')} ${L('Juhend õpilastele (prindi)', 'Инструкция для учеников (печать)')}</a>
               </section>
               <section class="card share-way">
                 <h2>${icon('pencil')} ${L('Link', 'Ссылка')}</h2>

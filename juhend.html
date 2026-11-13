@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="et" class="site style-eis mode-light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Juhend — kuidas testi teha</title>
+  <meta name="description" content="Lühike juhend õpilastele: kuidas siseneda ja testi teha.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="css/site.css">
+  <style>
+    :root { --hue: 218; --sat: 72%; --lit: 33%; --font: "Roboto", "Segoe UI", Arial, sans-serif; --radius: 3px; --radius-sm: 2px; --bg: #f2f4f7; --line: #cfd6df; }
+    body { background: var(--bg); }
+    .sheet { max-width: 1000px; margin: 24px auto; padding: 0 16px 32px; }
+    .bar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px; }
+    .poster { background: #fff; border: 1px solid var(--line); border-top: 6px solid var(--accent); padding: 28px 32px; }
+    .head { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+    .head h1 { margin: 0 0 4px; font-size: 2.2rem; font-weight: 700; color: var(--accent-ink); }
+    .head .ru { margin: 0 0 14px; color: var(--muted); font-size: 1.1rem; }
+    .url-label { margin: 0; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+    .url { margin: 4px 0 0; padding: 10px 14px; font: 700 1.55rem/1.2 Consolas, "Roboto Mono", monospace; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 3px; word-break: break-all; }
+    .qr { text-align: center; }
+    .qr__box { display: inline-block; padding: 8px; background: #fff; border: 1px solid var(--line); }
+    .qr p { margin: 6px 0 0; font-size: 0.85rem; color: var(--muted); }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin: 24px 0 6px; padding: 0; list-style: none; }
+    .step { display: flex; flex-direction: column; gap: 10px; padding: 18px; border: 1px solid var(--line); border-radius: 3px; }
+    .step__n { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 1.4rem; font-weight: 700; }
+    .step h2 { margin: 0; font-size: 1.3rem; font-weight: 700; }
+    .step .ru { margin: -6px 0 0; color: var(--muted); font-weight: 500; }
+    .step p { margin: 0; font-size: 1rem; line-height: 1.45; }
+    .step p.ru-text { color: var(--muted); font-size: 0.92rem; }
+    /* «ekraanipilt»: täpselt need nupud, mida õpilane näeb */
+    .mock { margin-top: auto; padding: 12px; background: var(--surface-2); border: 1px dashed var(--line); border-radius: 3px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; }
+    .mock__btn { padding: 7px 14px; font-weight: 600; font-size: 0.95rem; background: var(--accent); color: #fff; border-radius: 2px; white-space: nowrap; }
+    .mock__btn--ghost { background: #fff; color: var(--text); border: 1px solid var(--line); }
+    .mock__btn--ok { background: var(--ok); }
+    .mock__field { padding: 7px 10px; min-width: 110px; background: #fff; border: 1px solid var(--line); border-radius: 2px; color: var(--muted); font-size: 0.95rem; }
+    .mock__code { padding: 6px 12px; background: #fff; border: 2px solid var(--accent); border-radius: 2px; font: 700 1.3rem Consolas, monospace; letter-spacing: 0.2em; color: var(--accent-ink); }
+    .rules { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; margin: 22px 0 0; padding: 16px 18px; background: var(--accent-soft); border-radius: 3px; }
+    .rules p { margin: 0; display: flex; gap: 8px; align-items: flex-start; }
+    .rules .ico { flex: none; margin-top: 2px; color: var(--accent-ink); }
+    .rules small { display: block; color: var(--muted); }
+    .foot { margin: 16px 0 0; font-size: 0.85rem; color: var(--muted); text-align: center; }
+    @media (max-width: 760px) {
+      .head { grid-template-columns: 1fr; }
+      .steps, .rules { grid-template-columns: 1fr; }
+      .poster { padding: 20px 16px; }
+      .head h1 { font-size: 1.7rem; }
+      .url { font-size: 1.1rem; }
+    }
+    /* trükkimine: üks A4 leht, ilma nuppudeta */
+    @page { size: A4 landscape; margin: 10mm; }
+    @media print {
+      body { background: #fff; }
+      .bar { display: none; }
+      .sheet { margin: 0; max-width: none; padding: 0; }
+      .poster { border: 0; border-top: 6px solid var(--accent); padding: 0 4mm; }
+      .step, .mock, .rules { break-inside: avoid; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="bar">
+      <a class="btn btn--ghost" href="index.html">← Sisene / Вход</a>
+      <button class="btn" type="button" onclick="window.print()">Prindi / Распечатать</button>
+    </div>
+
+    <main class="poster">
+      <header class="head">
+        <div>
+          <h1>Kuidas teha testi</h1>
+          <p class="ru">Как пройти тест</p>
+          <p class="url-label">Ava brauseris / Открой в браузере</p>
+          <p class="url" id="siteUrl"></p>
+        </div>
+        <div class="qr">
+          <div class="qr__box" id="qr"></div>
+          <p>või skaneeri / или отсканируй</p>
+        </div>
+      </header>
+
+      <ol class="steps">
+        <li class="step">
+          <span class="step__n">1</span>
+          <h2>Sisene</h2>
+          <p class="ru">Войди</p>
+          <p>Vali <b>Õpilane</b>, kirjuta oma nimi ja klass, vajuta <b>Sisene</b>.</p>
+          <p class="ru-text">Выбери «Õpilane», напиши имя и класс, нажми «Sisene». Пароль не нужен.</p>
+          <div class="mock" aria-hidden="true">
+            <span class="mock__btn">Õpilane</span>
+            <span class="mock__field">Nimi</span>
+            <span class="mock__btn">Sisene</span>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step__n">2</span>
+          <h2>Sisesta kood</h2>
+          <p class="ru">Введи код</p>
+          <p>Kirjuta tahvlil olev kood ja vajuta <b>Alusta testi</b>.</p>
+          <p class="ru-text">Напиши код с доски и нажми «Alusta testi».</p>
+          <div class="mock" aria-hidden="true">
+            <span class="mock__code" id="codeDemo">A1AAA</span>
+            <span class="mock__btn">Alusta testi →</span>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step__n">3</span>
+          <h2>Vasta ja esita</h2>
+          <p class="ru">Ответь и сдай</p>
+          <p>Vasta küsimustele. Liigu edasi nupuga <b>Järgmine</b>. Viimasel küsimusel vajuta <b>Esita töö</b>.</p>
+          <p class="ru-text">Отвечай и нажимай «Järgmine». На последнем вопросе нажми «Esita töö».</p>
+          <div class="mock" aria-hidden="true">
+            <span class="mock__btn mock__btn--ghost">Järgmine →</span>
+            <span class="mock__btn mock__btn--ok">✓ Esita töö</span>
+          </div>
+        </li>
+      </ol>
+
+      <div class="rules">
+        <p data-icon="clock"><span>Vastused salvestuvad ise.<small>Ответы сохраняются сами.</small></span></p>
+        <p data-icon="cross"><span>Ära lahku testist — õpetaja näeb seda.<small>Не уходи из теста — учитель это увидит.</small></span></p>
+        <p data-icon="tests"><span>Ringid näitavad, mis on tehtud: ○ ◐ ●<small>Кружки показывают, что сделано.</small></span></p>
+        <p data-icon="megaphone"><span>Kui midagi ei tööta, tõsta käsi.<small>Если что-то не работает, подними руку.</small></span></p>
+      </div>
+    </main>
+    <p class="foot">Arvutiklass · <span id="footUrl"></span></p>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="js/site/ui.js"></script>
+  <script>
+    (function () {
+      // sait, kust juhend avati (töötab ka siis, kui sait kolib teisele aadressile)
+      const site = new URL('index.html', location.href).href.replace(/index\.html$/, '');
+      const short = site.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      document.getElementById('siteUrl').textContent = short;
+      document.getElementById('footUrl').textContent = short;
+      // ?kood=B3AAA — näita kindlat koodi
+      const code = new URLSearchParams(location.search).get('kood');
+      if (code && /^[A-J][0-9][A-J]{3}$/i.test(code)) document.getElementById('codeDemo').textContent = code.toUpperCase();
+      document.querySelectorAll('[data-icon]').forEach((n) => n.insertAdjacentHTML('afterbegin', UI.icon(n.dataset.icon)));
+      const box = document.getElementById('qr');
+      if (window.QRCode) {
+        new QRCode(box, { text: site, width: 150, height: 150, colorDark: '#111111', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+        box.title = '';
+      } else box.textContent = short;
+    })();
+  </script>
+</body>
+</html>

@@ -128,6 +128,7 @@
 
   function renderFoot() {
     foot.innerHTML = `
+      <a href="juhend.html"><b>${L('Juhend: kuidas testi teha', 'Инструкция: как пройти тест')}</b></a>
       <a href="anketa.html">${L('Küsitlus: milline sait olema peab (vene k.)', 'Анкета: каким быть сайту')}</a>
       <a href="site.html">${L('Harjutused ja mängud (vene k.)', 'Упражнения и игры')}</a>`;
   }
